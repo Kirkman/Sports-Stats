@@ -37,7 +37,10 @@ dates = [yesterday,today,tomorrow,test]
 # See https://erikberg.com/api/methods Request URL Convention for
 # an explanation
 def build_url(host, sport, method, id, format, parameters):
-	path = "/".join(filter(None, (sport, method, id)));
+	if method == 'events':
+		path = "/".join(filter(None, (method, id)));
+	else:
+		path = "/".join(filter(None, (sport, method, id)));
 	url = "https://" + host + "/" + path + "." + format
 	if parameters:
 		paramstring = urllib.urlencode(parameters)
@@ -73,7 +76,8 @@ def getStats(sport=None, method=None, date=None, id=None):
 	req.add_header("Accept-encoding", "gzip")
 
 	# add delay so we don't surpass API rate limit
-	time.sleep(11)
+	time.sleep(15)
+	print url
 
 	try:
 		response = urllib2.urlopen(req)
@@ -120,7 +124,7 @@ def main(mysport,date):
 			# iterate over events
 			for event in events['event']:
 				# if the game is finished, append box score data to the event file
-				if event['event_status'] == 'completed' and event['season_type'] == "regular":
+				if event['event_status'] == 'completed':
 					# get id
 					id = event['event_id']
 					boxJson = getStats(mysport, "boxscore", date, id)
@@ -148,9 +152,9 @@ def main(mysport,date):
 def cleanup():
 	for root, dirs, files in os.walk( exec_dir + 'cache/' ):
 		for dir in dirs:
-			if dir == '20130529':
+			if dir == test:
 				# do nothing
-				print "test dir"
+				pass
 			elif dir < yesterday:
 				print "deleted: " + dir
 				shutil.rmtree( root + dir )

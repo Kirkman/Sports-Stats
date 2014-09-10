@@ -1,5 +1,6 @@
 load('sbbsdefs.js');
 load('frame.js');
+//load('http.js');
 
 // some of the custom functions I'm using
 load(js.exec_dir + "helper-functions.js");
@@ -59,6 +60,7 @@ function cleanName(team,method) {
 	else if (method == 'events') {
 		replacements = [
 	//		['^' : '',
+			[/^Diamondbacks/i, 'D\'Backs'],
 			[/^Trail Blazers/i, 'T Blazers'],
 			[/^Timberwolves/i, 'T\'wolves']
 		];
@@ -455,6 +457,11 @@ function getStats(sport,method,date) {
 
 
 
+// ##################################
+// ### 
+// ### SCOREBOARD
+// ### 
+// ##################################
 
 function displayScores(sport,date) {
 	console.clear();
@@ -462,14 +469,6 @@ function displayScores(sport,date) {
 	date = date || new Date().yyyymmdd();
 	var json;
 	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
-	if (sport == 'mlb') {
-		// NEED TO WORK OUT DIMENSIONS FOR BASEBALL
-		var scoreFrameL = new Frame(1, 5, 39, 19, 0, frame);
-	}
-	else {
-		var scoreFrameL = new Frame(1, 5, 39, 19, 0, frame);
-		var scoreFrameR = new Frame(42, 5, 39, 19, 0, frame);
-	}
 
 	// Sorry message for Hockey and Football
 	if (sport == 'nhl' || sport == 'nfl' ) {
@@ -485,139 +484,256 @@ function displayScores(sport,date) {
 	// But I haven't written the baseball part yet.
 	else {
 		var method = "events";
-		var events = getStats(sport,method,date);
-		var statDate = events['events_date'].split('T')[0];
-		events = events.event;
-		var eventsLen = events.length;
-		for (var i=0; i<eventsLen; i++) {
-			var thisFrame;
-			if ( isOdd(i) ) { thisFrame = scoreFrameR; } 
-			else { thisFrame = scoreFrameL; } 
+		var eventsJson = getStats(sport,method,date);
+		var statDate = eventsJson['events_date'].split('T')[0];
+		// Whittle down to just the actual event objects.
+		// Then convert the single array into chunks of 8 events,
+		// which is most games we can fit on screen at once
+		var chunks = chunk(eventsJson.event,8);
+		debug( JSON.stringify(chunks, null, 4) );
 
-			var event = events[i];
-			// display box score
-			if ( event.event_status == "completed" ) {
-				var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(10);
-				var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(10);
-				var homeScore = event['home_totals']['points'];
-				var awayScore = event['away_totals']['points'];
-				var homeColor = lowWhite;
-				var awayColor = lowWhite;
-				if ( homeScore > awayScore ) { homeColor = highWhite; }
-				else { awayColor = highWhite; }
-				// number of periods
-				var len = event['away_period_scores'].length;
-				// default padding between columns
-				var paddingAmt = 2;
-				// if we went more than one OT, use smaller padding
-				if (len > 5) {
-					paddingAmt = 1;
-				}
-				// Generate the padding
-				var padding = ' '.repeat(paddingAmt);
-				// length of team column
-				var teamLen = 10;
-				// Width of all period columns (not including padding)
-				var periodLen = 2*len;
-				// Width of total column
-				var totalLen = 3;
-				// padding before each period and before spacer
-				var paddingLen = (paddingAmt * len) + paddingAmt;
-				// Length of topLine before the joint
-				var lineLen1 = teamLen + periodLen + paddingLen;
-				// Length of topLine after the joint
-				var lineLen2 = totalLen + paddingAmt + 1;
+		var chunksLen = chunks.length;
+		for (var h=0; h<chunksLen; h++) {
+			var scoreFrame = new Frame(1, 4, 80, 19, 0, frame);
 
-				// BUILD LABEL LINE
-				// start of label line
-				var labelLine = highBlack + ''.toString().ljust(teamLen);
-				// label the periods
-				for (var j=0; j < len; j++) {
-					var period = j + 1;
-					labelLine += padding;
-					// NEED TO ADD EXTRA CHECKS FOR NHL, WHERE OT is > 3.
-					if (period < 5) { 
-						labelLine += period.toString().rjust(2); 
+			// Iterate over the events in this chunk 
+			var events = chunks[h];
+			var eventsLen = events.length;
+		
+			for (var i=0; i<eventsLen; i++) {
+
+				var event = events[i];
+				// display box score
+				if ( event.event_status == "completed" ) {
+					// number of periods
+					var len = event['away_period_scores'].length;
+					// default padding between columns
+					var paddingAmt = 2;
+					// if we went more than one OT, use smaller padding
+					if (len > 5) {
+						paddingAmt = 0;
 					}
-					else { 
-						labelLine += 'ot'.rjust(2);
+					// Generate the padding
+					var padding = ' '.repeat(paddingAmt);
+					// length of team column
+					if (sport == 'mlb') {
+						var teamLen = 10;
 					}
-				}
-				// this is the joint
-				labelLine += padding + ' ';
-				// totals
-				labelLine += padding + 'tot'.toString().rjust(3) + ' ';
+					else {
+						var teamLen = 10;
+					}
+					// Width of all period columns (not including padding)
+					var periodLen = 2*len;
+					// Width of total column
+					var totalLen = 3;
+					// padding before each period and before spacer
+					var paddingLen = (paddingAmt * len) + paddingAmt;
+					// Length of topLine before the joint
+					var lineLen1 = teamLen + periodLen + paddingLen;
+					// Length of topLine after the joint
+					var lineLen2 = totalLen + paddingAmt + 1;
 
-				// BUILD TOP GRAY LINE
-				var topLine = highBlack;
-				for (var j=0; j < lineLen1; j++) {
-					topLine += charHorizSingle;
-				}
-				// add the joint
-				topLine += charHorizSingleDownDouble;
-				for (var j=0; j < lineLen2; j++) {
-					topLine += charHorizSingle;
-				}
+					var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(teamLen);
+					var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(teamLen);
+					// use Array.reduce to sum up each period's scores to get final score
+//  				var homeScore = event['home_period_scores'].reduce(function(a, b) { return a + b; });
+// 					var awayScore = event['away_period_scores'].reduce(function(a, b) { return a + b; });
+					if (sport == 'mlb') {
+						var homeScore = event['home_batter_totals']['runs'];
+						var awayScore = event['away_batter_totals']['runs'];
+					}
+					else {
+						var homeScore = event['home_totals']['points'];
+						var awayScore = event['away_totals']['points'];
+					}
+					var homeColor = lowWhite;
+					var awayColor = lowWhite;
+					if ( homeScore > awayScore ) { homeColor = highWhite; }
+					else { awayColor = highWhite; }
 
-				// BUILD AWAY TEAM LINE
-				var awayLine = awayColor + away;
-				for (var j=0; j < len; j++) {
+
+
+					// BUILD THE BOX SCORE
+					// Previously I used a line-by-line method, which was
+					// inefficient, since I was using a for-loop to iterate over
+					// the periods for each line.
+					// Now I'm using just one loop. The advantage is that this 
+					// will let me set extra padding on cells that need it.
+
+					// start of label line
+					var labelLine = highBlack + ''.toString().ljust(teamLen);
+
+					// start of top gray line
+					var topLine = highBlack;
+					for (var j=0; j < teamLen; j++) {
+						topLine += charHorizSingle;
+					}
+
+					// start of away team line
+					var awayLine = awayColor + away;
+
+					// start of home team line
+					var homeLine = homeColor + home;
+
+
+					// Iterate over the periods
+					for (var j=0; j < len; j++) {
+						var period = j + 1;
+						var awayPeriodScore = event['away_period_scores'][j];
+						var homePeriodScore = event['home_period_scores'][j];
+						// NEED TO ADD
+						// {ut a subroutine here (for MLB) to check 
+						// if an inning had a double-digit score. If so,
+						// increase the size of the cell on all lines.
+
+
+						// PERIOD LABEL
+						labelLine += padding;
+						if (sport == 'mlb') {
+							labelLine += period.toString().rjust(2); 
+						}
+						else if ( sport == 'nba' ) {
+							if (period < 5) { 
+								labelLine += period.toString().rjust(2); 
+							}
+							else { 
+								labelLine += 'ot'.rjust(2);
+							}
+						}
+						else if ( sport == 'nhl' ) {
+							if (period < 4) { 
+								labelLine += period.toString().rjust(2); 
+							}
+							else { 
+								labelLine += 'ot'.rjust(2);
+							}
+						}
+
+						// GRAY PIPE
+						topLine += charHorizSingle;
+						topLine += charHorizSingle;
+
+						// AWAY SCORE
+						awayLine += padding;
+						awayLine += awayPeriodScore.toString().rjust(2);
+
+						// HOME SCORE
+						homeLine += padding;
+						// In MLB, -1 indicates home team didn't bat in 9th inning
+						if (homePeriodScore < 0) {
+							homeLine += '-'.rjust(2);
+						}
+						else {
+							homeLine += homePeriodScore.toString().rjust(2);
+						}
+
+					}
+
+					// BUILD END OF LABEL LINE
+					// this is the joint
+					labelLine += padding + ' ';
+					// totals
+					labelLine += padding + 'tot'.toString().rjust(3) + ' ';
+
+					// BUILD END OF TOP GRAY LINE
+					// add the joint
+					topLine += charHorizSingleDownDouble;
+					for (var j=0; j < lineLen2; j++) {
+						topLine += charHorizSingle;
+					}
+
+					// BUILD AWAY TEAM LINE
 					awayLine += padding;
-					awayLine += event['away_period_scores'][j].toString().rjust(2);
-				}
-				awayLine += padding;
-				awayLine += highBlack + charVertDouble;
-				awayLine += padding + awayColor + awayScore.toString().rjust(3) + ' ';
+					awayLine += highBlack + charVertDouble;
+					awayLine += padding + awayColor + awayScore.toString().rjust(3) + ' ';
 
-				// BUILD HOME TEAM LINE
-				var homeLine = homeColor + home;
-				for (var j=0; j < len; j++) {
+					// BUILD HOME TEAM LINE
 					homeLine += padding;
-					homeLine += event['home_period_scores'][j].toString().rjust(2);
-				}
-				homeLine += padding;
-				homeLine += highBlack + charVertDouble;
-				homeLine += padding + homeColor + homeScore.toString().rjust(3) + ' ';
+					homeLine += highBlack + charVertDouble;
+					homeLine += padding + homeColor + homeScore.toString().rjust(3) + ' ';
 
-				thisFrame.putmsg(labelLine);
-				thisFrame.crlf();
-				thisFrame.putmsg(topLine);
-				thisFrame.crlf();
-				thisFrame.putmsg(awayLine);
-				thisFrame.crlf();
-				thisFrame.putmsg(homeLine);
-				thisFrame.crlf();
-				thisFrame.crlf();
-			} // completed games
-			// This is a matchup, not a box score
+
+					if ( isOdd(i) ) { 
+						var y = ( (i-1) / 2 ) * 5; 
+						var x = 42;
+					} 
+					else { 
+						var y = ( i / 2 ) * 5; 
+						var x = 0;
+					} 
+
+					scoreFrame.gotoxy(x,y+1);
+					scoreFrame.putmsg(labelLine);
+					scoreFrame.gotoxy(x,y+2);
+					scoreFrame.putmsg(topLine);
+					scoreFrame.gotoxy(x,y+3);
+					scoreFrame.putmsg(awayLine);
+					scoreFrame.gotoxy(x,y+4);
+					scoreFrame.putmsg(homeLine);
+
+					//debug(labelLine + '\r\n' + topLine +  '\r\n' + awayLine +  '\r\n' + homeLine +  '\r\n');
+					//debug('i: ' + i + '  |  i%4:' + i%4);
+
+				} // completed games
+				// This is a matchup, not a box score
+				else {
+					// 39
+					var away = cleanName(event.away_team.last_name).rjust(16) + ' ';
+					var home = (' ' + cleanName(event.home_team.last_name)).ljust(17);
+					var eventStartTime = new Date(event.start_date_time).timeNow();
+					var site = event.site.name;
+					eventStartTime = ' ' + eventStartTime.ljust(10);
+					site = site.rjust(26);
+
+					if ( isOdd(i) ) { 
+						var y = ( (i-1) / 2 ) * 5; 
+						var x = 42;
+					} 
+					else { 
+						var y = ( i / 2 ) * 5; 
+						var x = 0;
+					} 
+
+					scoreFrame.gotoxy(x,y+1);
+					scoreFrame.putmsg(highBlack + eventStartTime + site);
+					scoreFrame.gotoxy(x,y+2);
+					scoreFrame.putmsg(highBlack + charHorizSingle.repeat(38) + ' ');
+					scoreFrame.gotoxy(x,y+3);
+					scoreFrame.putmsg(lowWhite + away + ' at ' + home);
+
+
+				} // matchup
+			} // for loop iterating over events
+
+			// We have rendered the eight (or less) games in this chunk.
+			// Time to display them on the screen.
+			scoreFrame.draw();
+
+			headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
+			headerFrame.gotoxy(3,2);
+			var sportHeader = sport + ' scoreboard';
+			sportHeader = sportHeader.split('').join(' ');
+			headerFrame.putmsg(highCyan + sportHeader);
+			headerFrame.gotoxy(69,2);
+			headerFrame.putmsg(highBlack + statDate);
+			headerFrame.draw();
+
+			// User promp
+			var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
+			if ( h+1 == chunksLen) {
+				promptFrame.center(highCyan + 'Press any key to exit.');				
+				promptFrame.draw();
+			}
 			else {
-				// 39
-				var away = cleanName(event.away_team.last_name).rjust(16) + ' ';
-				var home = (' ' + cleanName(event.home_team.last_name)).ljust(17);
-				var eventStartTime = new Date(event.start_date_time).timeNow();
-				var site = event.site.name;
-				eventStartTime = ' ' + eventStartTime.ljust(10);
-				site = site.rjust(26);
-				thisFrame.putmsg( highBlack + eventStartTime + site);
-				thisFrame.crlf();
-				thisFrame.putmsg( highBlack + charHorizSingle.repeat(38) + ' ' );
-				thisFrame.crlf();
-				thisFrame.putmsg( lowWhite + away + ' at ' + home );
-				thisFrame.crlf();
-				thisFrame.crlf();
-			} // matchup
-		} // for loop iterating over events
+				promptFrame.center(highCyan + 'Press any key to see more.');				
+				promptFrame.draw();
+				console.getkey();
+			}
+			promptFrame.delete();
+			scoreFrame.delete();
 
-		headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
-		headerFrame.gotoxy(3,2);
-		var sportHeader = sport + ' scoreboard';
-		sportHeader = sportHeader.split('').join(' ');
-		headerFrame.putmsg(highCyan + sportHeader);
-		headerFrame.gotoxy(69,2);
-		headerFrame.putmsg(highBlack + statDate);
-		scoreFrameL.draw()
-		scoreFrameR.draw()
-		headerFrame.draw()
+		} // for loop iterating over chunks
+
 
 		console.getkey();
 
@@ -626,7 +742,11 @@ function displayScores(sport,date) {
 
 
 
-
+// ##################################
+// ### 
+// ### STANDINGS
+// ### 
+// ##################################
 
 function displayStandings(sport,date) {
 	sport = sport || 'mlb';
@@ -707,6 +827,8 @@ var cleanUp = function() {
 	frame.close();
 	console.clear();
 }
+
+
 
 
 // This launches the app

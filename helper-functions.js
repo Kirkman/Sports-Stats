@@ -1,3 +1,11 @@
+function debug(debugText) {
+	var debugFile = new File( js.exec_dir + '/debug.txt' );
+	debugFile.open("a");
+	debugFile.write( '\n' + debugText + '\n' );
+	debugFile.close();
+}
+
+
 // String repeat
 // From: http://snipplr.com/view/699/stringrepeat/
 String.prototype.repeat = function( num ) {
@@ -42,6 +50,20 @@ String.prototype.center = function( width, padding ) {
 }
 
 
+// Split an array into a chunks of a certain size
+// (turn one array into an array of smaller arrays, no longer than LEN)
+// http://stackoverflow.com/a/11764168
+
+function chunk(arr, len) {
+	var chunks = [], i = 0, n = arr.length;
+	while (i < n) {
+		chunks.push(arr.slice(i, i += len));
+	}
+	return chunks;
+}
+
+
+
 // Get distinct values from an array of objects
 // http://stackoverflow.com/questions/15125920/how-to-get-distinct-values-from-an-array-of-objects-in-javascript
 function uniqueBy(arr, fn) {
@@ -55,6 +77,17 @@ function uniqueBy(arr, fn) {
     }
   });
   return distinct;
+}
+
+
+// Sort an array of objects by a key
+// Adapted to sort in reverse order
+// http://stackoverflow.com/a/8837505/566307
+function sortByKey(array, key) {
+	return array.sort(function(a, b) {
+		var x = a[key]; var y = b[key];
+		return ((x > y) ? -1 : ((x < y) ? 1 : 0));
+	});
 }
 
 
