@@ -1,3 +1,5 @@
+![screenshot](http://www.breakintochat.com/files/misc/sports-stats-animation.gif)
+
 Sports-Stats
 ============
 
