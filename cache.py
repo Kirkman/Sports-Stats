@@ -10,6 +10,14 @@ import datetime
 import time
 import os
 import shutil
+#######################################################
+###  NFL SPECIFIC SECTION
+###  If XML stats ever adds football, then delete this
+#######################################################
+from nfl import *
+### END NFL SPECIFIC ##################################
+
+
 
 # the following code patches a weird JSON float conversion quirk. 
 # from http://stackoverflow.com/a/1447581/566307
@@ -32,6 +40,33 @@ today = datetime.date.fromordinal(datetime.date.today().toordinal()).strftime('%
 tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strftime('%Y%m%d')
 test = "20130529"
 dates = [yesterday,today,tomorrow,test]
+
+
+#######################################################
+###  NFL SPECIFIC SECTION
+###  If XML stats ever adds football, then delete this
+#######################################################
+thisYear, thisWeek = nflgame.live.current_year_and_week()
+weeks = []
+# Figure out the week numbers for last week, this week, and next week
+if thisWeek:
+	# there is no last week if this is week 1
+	if thisWeek > 1:
+		lastWeek = thisWeek - 1
+		weeks.append(lastWeek)
+	# add this week
+	weeks.append(thisWeek)
+	# there is no next week if this is week 17
+	if thisWeek < 17:
+		nextWeek = thisWeek + 1
+		weeks.append(nextWeek)
+nflDates = []
+for week in weeks:
+	nflDates.append( str(thisYear) + str(week).zfill(2) )
+
+### END NFL SPECIFIC ##################################
+
+
 
 
 # See https://erikberg.com/api/methods Request URL Convention for
@@ -82,10 +117,10 @@ def getStats(sport=None, method=None, date=None, id=None):
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, err:
-		print "Error retrieving file: {0}".format(err.code)
+		print "HTTPError retrieving file: {0}".format(err.code)
 		sys.exit(1)
 	except urllib2.URLError, err:
-		print "Error retrieving file: {0}".format(err.reason)
+		print "URLError retrieving file: {0}".format(err.reason)
 		sys.exit(1)
 
 	data = None
@@ -103,7 +138,10 @@ def getStats(sport=None, method=None, date=None, id=None):
 
 
 def save_result(mysport,method,date,data):
-	filename = exec_dir + 'cache/' + date + '/' + mysport + '-' + method + '.json'
+	filename = exec_dir + 'cache/'
+	if date is not None:
+		filename = filename + date + '/'
+	filename = filename + mysport + '-' + method + '.json'
 	directory = os.path.dirname(filename)
 	# if directory doesn't exist, create it.
 	if not os.path.exists(directory):
@@ -142,30 +180,43 @@ def main(mysport,date):
 						#print str(box["away_totals"]["free_throw_percentage"])
 			save_result(mysport,"events",date,events)
 
-		# grab today's standings
-		standingsJson = getStats(mysport, "standings", date)
-		if standingsJson:
-			standings = json.loads(standingsJson)
-			save_result(mysport,"standings",date,standings)
 
 
-def cleanup():
+def cleanup(dates):
+	print dates
+	# dates is a list of dirs/dates that should not be deleted
 	for root, dirs, files in os.walk( exec_dir + 'cache/' ):
 		for dir in dirs:
-			if dir == test:
+			if dir in dates:
 				# do nothing
 				pass
-			elif dir < yesterday:
-				print "deleted: " + dir
-				shutil.rmtree( root + dir )
-			elif dir > tomorrow:
+			else:
 				print "deleted: " + dir
 				shutil.rmtree( root + dir )
 
 
 	
 if __name__ == "__main__":
-	cleanup()
+	#######################################################
+	###  NFL SPECIFIC SECTION
+	###  If XML stats ever adds football, then replace the 
+	###  following section of code with this one line:
+	###  cleanup(dates)
+	#######################################################
+	allDates = dates + nflDates
+	cleanup(allDates)
+	for week in weeks:
+		parseSchedule(thisYear, week)
+	scrapeStandings()
+	### END NFL SPECIFIC ##################################
+
 	for mysport in sports:
 		for date in dates:
 			main(mysport,date)
+
+		# grab standings
+		standingsJson = getStats(mysport, "standings", date)
+		if standingsJson:
+			standings = json.loads(standingsJson)
+			save_result(mysport,"standings",None,standings)
+

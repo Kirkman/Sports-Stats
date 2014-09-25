@@ -1,6 +1,10 @@
 load('sbbsdefs.js');
+//load('json-client.js');
+//load('event-timer.js');
 load('frame.js');
-//load('http.js');
+//load('layout.js');
+//load('sprite.js');
+load('http.js');
 
 // some of the custom functions I'm using
 load(js.exec_dir + "helper-functions.js");
@@ -18,6 +22,7 @@ var lowCyan = 'NC0';
 var highCyan = 'HC0';
 var highBlack = 'HK0';
 var highYellowDarkBlue = 'HY4';
+var highWhiteDarkCyan = 'HW6';
 
 // CHARACTERS
 var charHorizSingle = ascii(196);
@@ -75,7 +80,7 @@ function cleanName(team,method) {
 }
 
 
-function outputConf(conference) {
+function outputConf(conference,sport) {
 	var confName = ' ' + cleanName(conference).toLowerCase();
 	var theName = confName.ljust('14');
 	var theWon  = 'w'.rjust('3');
@@ -83,6 +88,15 @@ function outputConf(conference) {
 	var thePct  = 'pct'.rjust('6');
 	var theGB   = 'gb '.rjust('5');
 	var theL10  = 'l10'.rjust('5');
+	// NFL does not have GB or L10.
+	// Replace with TD and L5.
+	if (sport == 'nfl') {
+		theWon  = 'w'.rjust('2');
+		theLost = 'l'.rjust('4');
+		theName = confName.ljust('12');
+		theGB   = ' pf'.rjust('5') + ' pa'.rjust('5');
+		theL10  = ' l5'.rjust('5');
+	}
 	return lowCyan + theName + highBlack + theWon + theLost + thePct + theGB + theL10;
 }
 
@@ -93,22 +107,36 @@ function outputDiv(division) {
 }
 
 
-function outputTeam(team,key) {
+function outputTeam(team,key,sport) {
 	var colorCode;
 	var teamName = cleanName( team.last_name.toString() );
-	var theName = ' ' + teamName.ljust('13');
-	var theWon  = team.won.toString().rjust('3');
-	var theLost = team.lost.toString().rjust('5');
-	var thePct  = team.win_percentage.toString().rjust('6');
-	var gb = team.games_back;
-	if ( !hasDecimal(gb) ) {
-		gb = team.games_back.toString() + ' ';
+	// NFL team names are shorter.
+	// NFL doesn't reach triple digit Ws or Ls.
+	// NFL lacks GB or L10, so replace with PF, PA, and L5.
+	if (sport == 'nfl') {
+		var theName = ' ' + teamName.ljust('11');
+		var theWon  = team.won.toString().rjust('2');
+		var theLost = team.lost.toString().rjust('4');
+		var thePct  = team.win_percentage.toString().rjust('6');
+		var theGB = team.points_for.toString().rjust('5') + team.points_against.toString().rjust('5');
+		var theL10  = team.last_five.toString().rjust('5');
 	}
 	else {
-		gb = team.games_back.toString().replace('.5',frac12);
+		var theName = ' ' + teamName.ljust('13');
+		var theWon  = team.won.toString().rjust('3');
+		var theLost = team.lost.toString().rjust('5');
+		var thePct  = team.win_percentage.toString().rjust('6');
+		var gb = team.games_back;
+		if ( !hasDecimal(gb) ) {
+			gb = team.games_back.toString() + ' ';
+		}
+		else {
+			gb = team.games_back.toString().replace('.5',frac12);
+		}
+		var theGB   = gb.rjust('5');
+		var theL10  = team.last_ten.toString().rjust('5');
 	}
-	var theGB   = gb.rjust('5');
-	var theL10  = team.last_ten.toString().rjust('5');
+
 
 	if ( favorite == teamName ) {
 		colorCode = highYellowDarkBlue;
@@ -312,20 +340,32 @@ function chooseSport() {
 		var datesW = optionsFrame.width;
 		var datesFrame = new Frame( datesX, datesY, datesW, 3, 0, frame );
 
-		var yesterday = new Date();
-		yesterday.setDate(yesterday.getDate() - 1);
-		yesterday = yesterday.yyyymmdd();
-		var today = new Date();
-		today = today.yyyymmdd();
-		var tomorrow = new Date();
-		tomorrow.setDate(tomorrow.getDate() + 1);
-		tomorrow = tomorrow.yyyymmdd();
+		// NFL schedules are weekly, not daily
+		if (mysport == 'nfl') {
+			var dates = [
+				{ 'date': '201403', 'name': 'Last week' },
+				{ 'date': '201404', 'name': 'This week' },
+				{ 'date': '201405', 'name': 'Next week' }
+			];
+		}
+		// All other sports use daily schedules
+		else {
+			var yesterday = new Date();
+			yesterday.setDate(yesterday.getDate() - 1);
+			yesterday = yesterday.yyyymmdd();
+			var today = new Date();
+			today = today.yyyymmdd();
+			var tomorrow = new Date();
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			tomorrow = tomorrow.yyyymmdd();
 
-		var dates = [
-			{ 'date': yesterday, 'name': 'Yesterday' },
-			{ 'date': today, 'name': 'Today' },
-			{ 'date': tomorrow, 'name': 'Tomorrow' }
-		];
+			var dates = [
+				{ 'date': yesterday, 'name': 'Yesterday' },
+				{ 'date': today, 'name': 'Today' },
+				{ 'date': tomorrow, 'name': 'Tomorrow' }
+			];
+		}
+
 
 		datesFrame.gotoxy(0,1);
 		for (var i=0; i<dates.length; i++) {
@@ -430,13 +470,16 @@ Num5: 53
 
 // Grab the locally-cached stats
 function getStats(sport,method,date) {
-	var d = new Date();
-	d = d.yyyymmdd();
 	sport  = sport  || 'mlb';
 	method = method || 'standings';
-	date   = date   || d;
+	date   = date   || null;
 
-	var jsonPath = js.exec_dir + 'cache/' + date + '/' + sport + "-" + method + ".json";
+	var jsonPath = js.exec_dir + 'cache/';
+	if (date) {
+		jsonPath = jsonPath + date + '/';
+	}
+	jsonPath = jsonPath + sport + "-" + method + ".json";
+
 	var jsonFile = new File( jsonPath );
 	jsonFile.open("r");
 	var jsonFileContents = jsonFile.read();
@@ -468,12 +511,12 @@ function displayScores(sport,date) {
 	sport = sport || 'mlb';
 	date = date || new Date().yyyymmdd();
 	var json;
-	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
+	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
 
 	// Sorry message for Hockey and Football
-	if (sport == 'nhl' || sport == 'nfl' ) {
-		headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
-		headerFrame.gotoxy(2,2);
+	if (sport == 'nhl') {
+		headerFrame.load(js.exec_dir + 'graphics/header-compact.bin', 80, 1);
+		headerFrame.gotoxy(1,1);
 		headerFrame.center(highCyan + 'We\'re sorry, but the ' + sport.toUpperCase() + ' feed isn\'t ready yet.');
 		headerFrame.draw();
 	}
@@ -490,11 +533,11 @@ function displayScores(sport,date) {
 		// Then convert the single array into chunks of 8 events,
 		// which is most games we can fit on screen at once
 		var chunks = chunk(eventsJson.event,8);
-		debug( JSON.stringify(chunks, null, 4) );
+		//debug( JSON.stringify(chunks, null, 4) );
 
 		var chunksLen = chunks.length;
 		for (var h=0; h<chunksLen; h++) {
-			var scoreFrame = new Frame(1, 4, 80, 19, 0, frame);
+			var scoreFrame = new Frame(1, 3, 80, 19, 0, frame);
 
 			// Iterate over the events in this chunk 
 			var events = chunks[h];
@@ -509,15 +552,21 @@ function displayScores(sport,date) {
 					var len = event['away_period_scores'].length;
 					// default padding between columns
 					var paddingAmt = 2;
+					// default padding before vertical pipes
+					var paddingEndAmt = 2;
 					// if we went more than one OT, use smaller padding
 					if (len > 5) {
 						paddingAmt = 0;
 					}
 					// Generate the padding
 					var padding = ' '.repeat(paddingAmt);
+					var paddingEnd = ' '.repeat(paddingEndAmt);
 					// length of team column
 					if (sport == 'mlb') {
 						var teamLen = 10;
+					}
+					else if (sport == 'nfl') {
+						var teamLen = 11;
 					}
 					else {
 						var teamLen = 10;
@@ -531,7 +580,7 @@ function displayScores(sport,date) {
 					// Length of topLine before the joint
 					var lineLen1 = teamLen + periodLen + paddingLen;
 					// Length of topLine after the joint
-					var lineLen2 = totalLen + paddingAmt + 1;
+					var lineLen2 = totalLen + 1;
 
 					var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(teamLen);
 					var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(teamLen);
@@ -592,7 +641,7 @@ function displayScores(sport,date) {
 						if (sport == 'mlb') {
 							labelLine += period.toString().rjust(2); 
 						}
-						else if ( sport == 'nba' ) {
+						else if ( sport == 'nba' || sport == 'nfl' ) {
 							if (period < 5) { 
 								labelLine += period.toString().rjust(2); 
 							}
@@ -610,8 +659,7 @@ function displayScores(sport,date) {
 						}
 
 						// GRAY PIPE
-						topLine += charHorizSingle;
-						topLine += charHorizSingle;
+						topLine += ''.rjust(2 + paddingAmt, charHorizSingle);
 
 						// AWAY SCORE
 						awayLine += padding;
@@ -631,26 +679,27 @@ function displayScores(sport,date) {
 
 					// BUILD END OF LABEL LINE
 					// this is the joint
-					labelLine += padding + ' ';
+					labelLine += paddingEnd + ' ';
 					// totals
-					labelLine += padding + 'tot'.toString().rjust(3) + ' ';
+					labelLine += ''.rjust((paddingEndAmt-1),' ') + 'tot'.toString().rjust(3);
 
 					// BUILD END OF TOP GRAY LINE
 					// add the joint
+					topLine += ''.rjust(paddingEndAmt, charHorizSingle);
 					topLine += charHorizSingleDownDouble;
 					for (var j=0; j < lineLen2; j++) {
 						topLine += charHorizSingle;
 					}
 
 					// BUILD AWAY TEAM LINE
-					awayLine += padding;
+					awayLine += paddingEnd;
 					awayLine += highBlack + charVertDouble;
-					awayLine += padding + awayColor + awayScore.toString().rjust(3) + ' ';
+					awayLine += paddingEnd + awayColor + awayScore.toString().rjust(2);
 
 					// BUILD HOME TEAM LINE
-					homeLine += padding;
+					homeLine += paddingEnd;
 					homeLine += highBlack + charVertDouble;
-					homeLine += padding + homeColor + homeScore.toString().rjust(3) + ' ';
+					homeLine += paddingEnd + homeColor + homeScore.toString().rjust(2);
 
 
 					if ( isOdd(i) ) { 
@@ -705,20 +754,20 @@ function displayScores(sport,date) {
 				} // matchup
 			} // for loop iterating over events
 
-			// We have rendered the eight (or less) games in this chunk.
+			// We have rendered the eight (or fewer) games in this chunk.
 			// Time to display them on the screen.
 			scoreFrame.draw();
 
-			headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
-			headerFrame.gotoxy(3,2);
+			headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
+			headerFrame.gotoxy(2,1);
 			var sportHeader = sport + ' scoreboard';
-			sportHeader = sportHeader.split('').join(' ');
-			headerFrame.putmsg(highCyan + sportHeader);
-			headerFrame.gotoxy(69,2);
+			sportHeader = sportHeader;
+			headerFrame.putmsg(highWhiteDarkCyan + sportHeader);
+			headerFrame.gotoxy(63,1);
 			headerFrame.putmsg(highBlack + statDate);
 			headerFrame.draw();
 
-			// User promp
+			// User prompt
 			var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
 			if ( h+1 == chunksLen) {
 				promptFrame.center(highCyan + 'Press any key to exit.');				
@@ -748,27 +797,30 @@ function displayScores(sport,date) {
 // ### 
 // ##################################
 
-function displayStandings(sport,date) {
+function displayStandings(sport,byDivision) {
 	sport = sport || 'mlb';
-	date = date || new Date().yyyymmdd();
+	byDivision = byDivision || true;
+
 	console.clear();
 	var method = "standings";
-	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
-	var confFrameL = new Frame(1, 5, 39, 19, 0, frame);
-	var confFrameR = new Frame(42, 5, 39, 19, 0, frame);
-	var seperatorFrame = new Frame(40, 5, 2, 19, 0, frame);
+	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
+	var confFrameL = new Frame(1, 3, 39, 21, 0, frame);
+	var confFrameR = new Frame(42, 3, 39, 21, 0, frame);
+	var seperatorFrame = new Frame(40, 3, 2, 21, 0, frame);
 
 	// Sorry message for Hockey and Football
-	if (sport == 'nhl' || sport == 'nfl' ) {
-		headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3)
-		headerFrame.gotoxy(2,2);
+	if (sport == 'nhl') {
+		headerFrame.load(js.exec_dir + 'graphics/header-compact.bin', 80, 2)
+		headerFrame.gotoxy(1,1);
 		headerFrame.center(highCyan + 'We\'re sorry, but the ' + sport.toUpperCase() + ' feed isn\'t ready yet.');
 		headerFrame.draw();
 	} // if nhl/nfl
 	// Display standings
 	else {
-		var json = getStats(sport, method, date);
+
+		var json = getStats(sport, method);
 		if (json) {
+
 			statDate = json['standings_date'].split('T')[0];
 			json = json['standing'];
 
@@ -779,29 +831,44 @@ function displayStandings(sport,date) {
 				var thisFrame;
 				if ( isOdd(i) ) { thisFrame = confFrameR; } 
 				else { thisFrame = confFrameL; } 
-				thisFrame.putmsg( outputConf(conferences[i]) );
+				thisFrame.putmsg( outputConf(conferences[i],sport));
 				thisFrame.crlf();
 				var thisConfStandings = json.filter( function(x){return x.conference === conferences[i];} );
-				var divisions = uniqueBy(thisConfStandings, function(x){return x.division;});
-				for (var j=0; j<divisions.length; j++) {
-					var thisDivStandings = thisConfStandings.filter( function(x){return x.division === divisions[j];} );
-					thisFrame.putmsg( outputDiv(divisions[j]) );
+				// There are circumstances where I won't want to break down the standings
+				// all the way to the division level. So I have added an optional 
+				// byDivision variable, which defaults to True. If you set it to false
+				// teams will be displayed by conference.
+				if (byDivision) {
+					var divisions = uniqueBy(thisConfStandings, function(x){return x.division;});
+					for (var j=0; j<divisions.length; j++) {
+						var thisDivStandings = thisConfStandings.filter( function(x){return x.division === divisions[j];} );
+						thisFrame.putmsg( outputDiv(divisions[j]) );
+						thisFrame.crlf();
+						for (var key in thisDivStandings) {
+							thisFrame.putmsg( outputTeam(thisDivStandings[key],key,sport) );
+							thisFrame.crlf();
+						} // key in divStandings for loop
+					} // divisions for loop
+				} // if byDivision
+				else {
+					thisConfStandings = sortByKey(thisConfStandings, 'win_percentage');
+					thisFrame.putmsg(highBlack + ''.ljust('39',charHorizSingle) );
 					thisFrame.crlf();
-					for (var key in thisDivStandings) {
-						thisFrame.putmsg( outputTeam(thisDivStandings[key],key) );
+					for (var j=0; j<thisConfStandings.length; j++) {
+						thisFrame.putmsg( outputTeam(thisConfStandings[j],j,sport) );
 						thisFrame.crlf();
 					} // key in divStandings for loop
-				} // divisions for loop
+				} // else byDivision
 			} // conferences for loop
 
-			seperatorFrame.load(js.exec_dir + 'graphics/separator.bin', 2, 19);
+			seperatorFrame.load(js.exec_dir + 'graphics/separator.bin', 2, 21);
 
-			headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
-			headerFrame.gotoxy(3,2);
+			headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
+			headerFrame.gotoxy(2,1);
 			var sportHeader = sport + ' ' + method;
-			sportHeader = sportHeader.split('').join(' ');
-			headerFrame.putmsg(highCyan + sportHeader);
-			headerFrame.gotoxy(69,2);
+			sportHeader = sportHeader;
+			headerFrame.putmsg(highWhiteDarkCyan + sportHeader);
+			headerFrame.gotoxy(63,1);
 			headerFrame.putmsg(highBlack + statDate);
 
 			confFrameL.draw();
