@@ -11,59 +11,67 @@ import nflgame
 import nflgame.update_sched
 from bs4 import BeautifulSoup
 from cache import *
+import datetime
 
 
 teamNames = [
-    ['ARI', 'Arizona', 'Cardinals', 'Arizona Cardinals'],
-    ['ATL', 'Atlanta', 'Falcons', 'Atlanta Falcons'],
-    ['BAL', 'Baltimore', 'Ravens', 'Baltimore Ravens'],
-    ['BUF', 'Buffalo', 'Bills', 'Buffalo Bills'],
-    ['CAR', 'Carolina', 'Panthers', 'Carolina Panthers'],
-    ['CHI', 'Chicago', 'Bears', 'Chicago Bears'],
-    ['CIN', 'Cincinnati', 'Bengals', 'Cincinnati Bengals'],
-    ['CLE', 'Cleveland', 'Browns', 'Cleveland Browns'],
-    ['DAL', 'Dallas', 'Cowboys', 'Dallas Cowboys'],
-    ['DEN', 'Denver', 'Broncos', 'Denver Broncos'],
-    ['DET', 'Detroit', 'Lions', 'Detroit Lions'],
-    ['GB', 'Green Bay', 'Packers', 'Green Bay Packers', 'G.B.', 'GNB'],
-    ['HOU', 'Houston', 'Texans', 'Houston Texans'],
-    ['IND', 'Indianapolis', 'Colts', 'Indianapolis Colts'],
-    ['JAC', 'Jacksonville', 'Jaguars', 'Jacksonville Jaguars', 'JAX'],
-    ['KC', 'Kansas City', 'Chiefs', 'Kansas City Chiefs', 'K.C.', 'KAN'],
-    ['MIA', 'Miami', 'Dolphins', 'Miami Dolphins'],
-    ['MIN', 'Minnesota', 'Vikings', 'Minnesota Vikings'],
-    ['NE', 'New England', 'Patriots', 'New England Patriots', 'N.E.', 'NWE'],
-    ['NO', 'New Orleans', 'Saints', 'New Orleans Saints', 'N.O.', 'NOR'],
-    ['NYG', 'New York', 'Giants', 'N.Y.G.'],
-    ['NYJ', 'New York', 'Jets', 'N.Y.J.'],
-    ['OAK', 'Oakland', 'Raiders', 'Oakland Raiders'],
-    ['PHI', 'Philadelphia', 'Eagles', 'Philadelphia Eagles'],
-    ['PIT', 'Pittsburgh', 'Steelers', 'Pittsburgh Steelers'],
-    ['SD', 'San Diego', 'Chargers', 'San Diego Chargers', 'S.D.', 'SDG'],
-    ['SEA', 'Seattle', 'Seahawks', 'Seattle Seahawks'],
-    ['SF', 'San Francisco', '49ers', 'San Francisco 49ers', 'S.F.', 'SFO'],
-    ['STL', 'St. Louis', 'Rams', 'St. Louis Rams', 'S.T.L.'],
-    ['TB', 'Tampa Bay', 'Buccaneers', 'Tampa Bay Buccaneers', 'T.B.', 'TAM'],
-    ['TEN', 'Tennessee', 'Titans', 'Tennessee Titans'],
-    ['WAS', 'Washington', 'Redskins', 'Washington Redskins', 'WSH'],
+	{ 'abbrev':'ARI', 'city': 'Arizona', 'team': 'Cardinals', 'full': 'Arizona Cardinals', 'alternates': [], 'site': 'University of Phoenix Stadium' },
+	{ 'abbrev':'ATL', 'city': 'Atlanta', 'team': 'Falcons', 'full': 'Atlanta Falcons', 'alternates': [], 'site': 'Georgia Dome' },
+	{ 'abbrev':'BAL', 'city': 'Baltimore', 'team': 'Ravens', 'full': 'Baltimore Ravens', 'alternates': [], 'site': 'M&T Bank Stadium' },
+	{ 'abbrev':'BUF', 'city': 'Buffalo', 'team': 'Bills', 'full': 'Buffalo Bills', 'alternates': [], 'site': 'Ralph Wilson Stadium' },
+	{ 'abbrev':'CAR', 'city': 'Carolina', 'team': 'Panthers', 'full': 'Carolina Panthers', 'alternates': [], 'site': 'Bank of America Stadium' },
+	{ 'abbrev':'CHI', 'city': 'Chicago', 'team': 'Bears', 'full': 'Chicago Bears', 'alternates': [], 'site': 'Soldier Field' },
+	{ 'abbrev':'CIN', 'city': 'Cincinnati', 'team': 'Bengals', 'full': 'Cincinnati Bengals', 'alternates': [], 'site': 'Paul Brown Stadium' },
+	{ 'abbrev':'CLE', 'city': 'Cleveland', 'team': 'Browns', 'full': 'Cleveland Browns', 'alternates': [], 'site': 'FirstEnergy Stadium' },
+	{ 'abbrev':'DAL', 'city': 'Dallas', 'team': 'Cowboys', 'full': 'Dallas Cowboys', 'alternates': [], 'site': 'AT&T Stadium' },
+	{ 'abbrev':'DEN', 'city': 'Denver', 'team': 'Broncos', 'full': 'Denver Broncos', 'alternates': [], 'site': 'Mile High' },
+	{ 'abbrev':'DET', 'city': 'Detroit', 'team': 'Lions', 'full': 'Detroit Lions', 'alternates': [], 'site': 'Ford Field' },
+	{ 'abbrev':'GB', 'city': 'Green Bay', 'team': 'Packers', 'full': 'Green Bay Packers', 'alternates': ['G.B.', 'GNB'], 'site': 'Lambeau Field' },
+	{ 'abbrev':'HOU', 'city': 'Houston', 'team': 'Texans', 'full': 'Houston Texans', 'alternates': [], 'site': 'NRG Stadium' },
+	{ 'abbrev':'IND', 'city': 'Indianapolis', 'team': 'Colts', 'full': 'Indianapolis Colts', 'alternates': [], 'site': 'Lucas Oil Stadium' },
+	{ 'abbrev':'JAC', 'city': 'Jacksonville', 'team': 'Jaguars', 'full': 'Jacksonville Jaguars', 'alternates': ['JAX'], 'site': 'EverBank Field' },
+	{ 'abbrev':'KC', 'city': 'Kansas City', 'team': 'Chiefs', 'full': 'Kansas City Chiefs', 'alternates': ['K.C.', 'KAN'], 'site': 'Arrowhead Stadium' },
+	{ 'abbrev':'MIA', 'city': 'Miami', 'team': 'Dolphins', 'full': 'Miami Dolphins', 'alternates': [], 'site': 'Sun Life Stadium' },
+	{ 'abbrev':'MIN', 'city': 'Minnesota', 'team': 'Vikings', 'full': 'Minnesota Vikings', 'alternates': [], 'site': 'TCF Bank Stadium' },
+	{ 'abbrev':'NE', 'city': 'New England', 'team': 'Patriots', 'full': 'New England Patriots', 'alternates': ['N.E.', 'NWE'], 'site': 'Gillette Stadium' },
+	{ 'abbrev':'NO', 'city': 'New Orleans', 'team': 'Saints', 'full': 'New Orleans Saints', 'alternates': ['N.O.', 'NOR'], 'site': 'Mercedes-Benz Superdome' },
+	{ 'abbrev':'NYG', 'city': 'New York', 'team': 'Giants', 'full': 'N.Y.G.', 'alternates': [], 'site': 'MetLife Stadium' },
+	{ 'abbrev':'NYJ', 'city': 'New York', 'team': 'Jets', 'full': 'N.Y.J.', 'alternates': [], 'site': 'MetLife Stadium' },
+	{ 'abbrev':'OAK', 'city': 'Oakland', 'team': 'Raiders', 'full': 'Oakland Raiders', 'alternates': [], 'site': 'O.co Coliseum' },
+	{ 'abbrev':'PHI', 'city': 'Philadelphia', 'team': 'Eagles', 'full': 'Philadelphia Eagles', 'alternates': [], 'site': 'Lincoln Financial Field' },
+	{ 'abbrev':'PIT', 'city': 'Pittsburgh', 'team': 'Steelers', 'full': 'Pittsburgh Steelers', 'alternates': [], 'site': 'Heinz Field' },
+	{ 'abbrev':'SD', 'city': 'San Diego', 'team': 'Chargers', 'full': 'San Diego Chargers', 'alternates': ['S.D.', 'SDG'], 'site': 'Qualcomm Stadium' },
+	{ 'abbrev':'SEA', 'city': 'Seattle', 'team': 'Seahawks', 'full': 'Seattle Seahawks', 'alternates': [], 'site': 'CenturyLink Field' },
+	{ 'abbrev':'SF', 'city': 'San Francisco', 'team': '49ers', 'full': 'San Francisco 49ers', 'alternates': ['S.F.', 'SFO'], 'site': 'Levi\'s Stadium' },
+	{ 'abbrev':'STL', 'city': 'St. Louis', 'team': 'Rams', 'full': 'St. Louis Rams', 'alternates': ['S.T.L.'], 'site': 'Edward Jones Dome' },
+	{ 'abbrev':'TB', 'city': 'Tampa Bay', 'team': 'Buccaneers', 'full': 'Tampa Bay Buccaneers', 'alternates': ['T.B.', 'TAM'], 'site': 'Raymond James Stadium' },
+	{ 'abbrev':'TEN', 'city': 'Tennessee', 'team': 'Titans', 'full': 'Tennessee Titans', 'alternates': [], 'site': 'LP Field' },
+	{ 'abbrev':'WAS', 'city': 'Washington', 'team': 'Redskins', 'full': 'Washington Redskins', 'alternates': ['WSH'], 'site': 'FedExField' },
 ]
 def getTeamCity(team):
 	for t in teamNames:
-		if t[0] == team:
-			return t[1]
+		if t['abbrev'] == team:
+			return t['city']
 	return team
 
 def getTeamName(team):
 	for t in teamNames:
-		if t[0] == team:
-			return t[2]
+		if t['abbrev'] == team:
+			return t['team']
 	return team
 
 def getTeamFull(team):
 	for t in teamNames:
-		if t[0] == team:
-			return t[3]
+		if t['abbrev'] == team:
+			return t['full']
 	return team
+
+def getTeamStadium(team):
+	for t in teamNames:
+		if t['abbrev'] == team:
+			return t['site']
+	return team
+
 
 def getGameFromList(gameKey,games):
 	for g in games:
@@ -133,9 +141,13 @@ def parseSchedule(year, week):
 		homeFull = getTeamFull( s['home'] )
 		awayFull = getTeamFull( s['away'] )
 
+		# this is a stop-gap, since teams sometimes play at neutral sites.
+		# I will have to scrape the game sites from NFL.com at some point.
+		stadium = getTeamStadium( s['home'] )
+
 		theDate = str(s['year']) + '-' + str(s['month']).zfill(2)  + '-' + str(s['day']).zfill(2)
 		theTime = s['time']
-		timePieces = theTime.split(':');
+		timePieces = theTime.split(':')
 		theTime = timePieces[0].zfill(2) + ':' + timePieces[1].zfill(2) + ' PM'
 		theTime = datetime.datetime.strptime(theTime, '%I:%M %p')
 		theTime = theTime.strftime('%H:%M:%S')
@@ -151,7 +163,7 @@ def parseSchedule(year, week):
 
 
 		eventObj = {
-			"start_date_time": eventsDate, 
+			"start_date_time": eventsDateTime, 
 			"away_team": {
 				"first_name": awayCity, 
 				"last_name": awayTeam, 
@@ -169,11 +181,7 @@ def parseSchedule(year, week):
 				"active": True
 			}, 
 			"site": {
-				"city": "Chicago", 
-				"state": "Illinois", 
-				"capacity": 39538, 
-				"name": "Wrigley Field", 
-				"surface": "Grass"
+				"name": stadium
 			}, 
 			"sport": "NFL"
 		}
@@ -263,7 +271,7 @@ def parseSchedule(year, week):
 	#print events
 	date = str(year) + str(week).zfill(2)
 	save_result('nfl','events',date,events)
-
+	return events
 
 
 
@@ -275,115 +283,113 @@ def parseSchedule(year, week):
 def scrapeStandings():
 
 	html = scrape('http://www.nfl.com/standings')
+	if html:
+		soup = BeautifulSoup(html)
+		table = soup.find('table', {'class':'data-table1'})
 	
-	soup = BeautifulSoup(html)
-	table = soup.find('table', {'class':'data-table1'})
+		# keep track of which conference
+		conference = None
+		# keep track of which division
+		division = None
+
+		# build standings date stamp
+		eventsDate = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-06:00')
+
+		# create standings object
+		standings = {
+			"standings_date": eventsDate, 
+			"standing": []
+		}
+
+		# loop through every team in the option list
+		for row in table.findAll('tr'):
 	
-	# keep track of which conference
-	conference = None
-	# keep track of which division
-	division = None
+			# Figure out what kind of row this is
+			rowClass = row.get('class')
+			if rowClass:
+				# Conference header
+				if 'thd1' in rowClass:
+					thisConference = row.td.string.strip()
+					if 'american' in thisConference.lower():
+						conference = 'AFC'
+					elif 'national' in thisConference.lower():
+						conference = 'NFC'
+				# Division header
+				elif 'thd2' in rowClass:
+					thisDivision = row.td.string.strip()
+					if 'east' in thisDivision.lower():
+						division = 'East'
+					elif 'west' in thisDivision.lower():
+						division = 'West'
+					elif 'north' in thisDivision.lower():
+						division = 'North'
+					elif 'south' in thisDivision.lower():
+						division = 'South'
+				# Team's standings line
+				elif 'tbdy1' in rowClass:
+					teamRaw = row.select('td:nth-of-type(1)')
+					if teamRaw:
+						teamUrl = teamRaw[0].find('a').get('href')
+						if teamUrl:
+							teamAbbr = teamUrl.split('=')[1]
+						w = int(row.select('td:nth-of-type(2)')[0].string)
+						l = int(row.select('td:nth-of-type(3)')[0].string)
+						t = int(row.select('td:nth-of-type(4)')[0].string)
+						pct = row.select('td:nth-of-type(5)')[0].string
+						pf = int(row.select('td:nth-of-type(6)')[0].string)
+						pa = int(row.select('td:nth-of-type(7)')[0].string)
+						net_pts = int(row.select('td:nth-of-type(8)')[0].string)
+						td = int(row.select('td:nth-of-type(9)')[0].string)
+						home = row.select('td:nth-of-type(10)')[0].string.split('-')
+						away = row.select('td:nth-of-type(11)')[0].string.split('-')
+						div = row.select('td:nth-of-type(12)')[0].string.split('-')
+						conf = row.select('td:nth-of-type(14)')[0].string.split('-')
+						streak = row.select('td:nth-of-type(17)')[0].string
+						last_five = row.select('td:nth-of-type(18)')[0].string
 
-	# build standings date stamp
-	eventsDate = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-06:00')
-
-
-
-	# create standings object
-	standings = {
-		"standings_date": eventsDate, 
-		"standing": []
-	}
-
-
-	# loop through every team in the option list
-	for row in table.findAll('tr'):
-	
-		# Figure out what kind of row this is
-		rowClass = row.get('class')
-		if rowClass:
-			# Conference header
-			if 'thd1' in rowClass:
-				thisConference = row.td.string.strip()
-				if 'american' in thisConference.lower():
-					conference = 'AFC'
-				elif 'national' in thisConference.lower():
-					conference = 'NFC'
-			# Division header
-			elif 'thd2' in rowClass:
-				thisDivision = row.td.string.strip()
-				if 'east' in thisDivision.lower():
-					division = 'East'
-				elif 'west' in thisDivision.lower():
-					division = 'West'
-				elif 'north' in thisDivision.lower():
-					division = 'North'
-				elif 'south' in thisDivision.lower():
-					division = 'South'
-			# Team's standings line
-			elif 'tbdy1' in rowClass:
-				teamRaw = row.select('td:nth-of-type(1)')
-				if teamRaw:
-					teamUrl = teamRaw[0].find('a').get('href')
-					if teamUrl:
-						teamAbbr = teamUrl.split('=')[1]
-					w = int(row.select('td:nth-of-type(2)')[0].string)
-					l = int(row.select('td:nth-of-type(3)')[0].string)
-					t = int(row.select('td:nth-of-type(4)')[0].string)
-					pct = row.select('td:nth-of-type(5)')[0].string
-					pf = int(row.select('td:nth-of-type(6)')[0].string)
-					pa = int(row.select('td:nth-of-type(7)')[0].string)
-					net_pts = int(row.select('td:nth-of-type(8)')[0].string)
-					td = int(row.select('td:nth-of-type(9)')[0].string)
-					home = row.select('td:nth-of-type(10)')[0].string.split('-')
-					away = row.select('td:nth-of-type(11)')[0].string.split('-')
-					div = row.select('td:nth-of-type(12)')[0].string.split('-')
-					conf = row.select('td:nth-of-type(14)')[0].string.split('-')
-					streak = row.select('td:nth-of-type(17)')[0].string
-					last_five = row.select('td:nth-of-type(18)')[0].string
-
-					if streak[-1:] == 'L':
-						streak_type = 'loss'
-					elif streak[-1:] == 'W':
-						streak_type = 'win'
+						if streak[-1:] == 'L':
+							streak_type = 'loss'
+						elif streak[-1:] == 'W':
+							streak_type = 'win'
 
 
-					standingObj = {
-#						"team_id":"miami-heat",
-						"last_name": getTeamName(teamAbbr),
-						"first_name": getTeamCity(teamAbbr),
-						"conference": conference,
-						"division": division,
-#						"rank":2,
-#						"ordinal_rank":"2nd",
-#						"playoff_seed":2,
-						"won": w,
-						"lost":l,
-						"win_percentage": pct,
-#						"games_back":2.0,
-#						"games_played":82,
-#						"point_differential_per_game":"4.8",
-#						"points_allowed_per_game":"97.4",
-						"points_for": pf,
-						"points_against": pa,
-						"net_pts": net_pts,
-						"touchdowns": td,
-#						"point_differential":390,
-#						"points_scored_per_game":"102.2",
-						"home_won": home[0],
-						"home_lost":home[1],
-						"away_won":away[0],
-						"away_lost":away[1],
-						"conference_won": conf[0],
-						"conference_lost": conf[1],
-						"division_won": div[0],
-						"division_lost": div[1],
-#						"last_ten":"4-6",
-						"last_five": last_five,
-						"streak": streak,
-						"streak_total":streak[:-1],
-						"streak_type": streak_type
-					}
-					standings['standing'].append(standingObj)
-	save_result('nfl','standings',None,standings)
-
+						standingObj = {
+	#						"team_id":"miami-heat",
+							"last_name": getTeamName(teamAbbr),
+							"first_name": getTeamCity(teamAbbr),
+							"conference": conference,
+							"division": division,
+	#						"rank":2,
+	#						"ordinal_rank":"2nd",
+	#						"playoff_seed":2,
+							"won": w,
+							"lost":l,
+							"win_percentage": pct,
+	#						"games_back":2.0,
+	#						"games_played":82,
+	#						"point_differential_per_game":"4.8",
+	#						"points_allowed_per_game":"97.4",
+							"points_for": pf,
+							"points_against": pa,
+							"net_pts": net_pts,
+							"touchdowns": td,
+	#						"point_differential":390,
+	#						"points_scored_per_game":"102.2",
+							"home_won": home[0],
+							"home_lost":home[1],
+							"away_won":away[0],
+							"away_lost":away[1],
+							"conference_won": conf[0],
+							"conference_lost": conf[1],
+							"division_won": div[0],
+							"division_lost": div[1],
+	#						"last_ten":"4-6",
+							"last_five": last_five,
+							"streak": streak,
+							"streak_total":streak[:-1],
+							"streak_type": streak_type
+						}
+						standings['standing'].append(standingObj)
+		save_result('nfl','standings',None,standings)
+		return standings
+	return None

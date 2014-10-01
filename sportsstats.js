@@ -1,5 +1,5 @@
 load('sbbsdefs.js');
-//load('json-client.js');
+load('json-client.js');
 //load('event-timer.js');
 load('frame.js');
 //load('layout.js');
@@ -9,6 +9,12 @@ load('http.js');
 // some of the custom functions I'm using
 load(js.exec_dir + "helper-functions.js");
 
+
+
+var f = new File(js.exec_dir + "server.ini");
+f.open("r");
+var serverIni = f.iniGetObject();
+f.close();
 
 
 // CHARACTER SET NOTE:
@@ -37,6 +43,28 @@ var favorite = 'Spurs';
 
 // Frame for the whole app
 var frame = new Frame(1, 1, 80, 24, 0);
+
+
+// Get relative dates from JSON database
+function getDates() {
+	try {
+		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
+		var data = jsonClient.read("SPORTSSTATS", "SPORTSSTATS.DATES", 1);
+		if (data === undefined) {
+			debug("JSON client error: jsonClient returned undefined");
+			jsonClient.disconnect();
+			return false;
+		}
+		else {
+			jsonClient.disconnect();
+			return data;
+		}
+	}
+	catch(err) {
+		debug("JSON client error: " + err);
+		return false;
+	}
+}
 
 
 
@@ -154,7 +182,7 @@ function outputTeam(team,key,sport) {
 
 function chooseSport() {
 	console.clear();
-
+	frame.cycle();
 	var mysport = '';
 
 	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
@@ -168,7 +196,7 @@ function chooseSport() {
 	headerFrame.draw();
 
 	var instructFrame = new Frame(1, 5, 80, 3, 0, frame);
-	var message = lowWhite + 'Use the arrow keys to choose a sport, then hit Enter.';
+	var message = highBlack + '[Arrows]' + lowWhite + ' Navigate   ' + highBlack + '|   [Enter]' + lowWhite + ' Make selection   ' + highBlack + '|   [Q]' + lowWhite + ' Quit';
 	instructFrame.center( message.center(80) );
 	instructFrame.draw();
 
@@ -260,7 +288,12 @@ function chooseSport() {
 			); 
 			sports[prevSport]['frame'].draw();
 			sports[currentSport]['frame'].draw();
+		} // end if 
+		else if ( userInput == "Q" ) {
+			cleanUp();
+			exit();
 		}
+
 	} // end while
 
 	mysport = sports[currentSport]['sport'];
@@ -286,9 +319,9 @@ function chooseSport() {
 	}
 	optionsFrame.draw();
 
-	message = lowWhite + 'Use the arrow keys to choose a stat, then hit Enter.';
-	instructFrame.center( message.center(80) );
-	instructFrame.draw();
+	//message = highBlack + '[' + lowWhite + 'Arrows' + highBlack + ']' + lowWhite + 'Navigate   ' + highBlack + '|   [' + lowWhite + 'Enter' + highBlack + ']' + lowWhite + ' Make selection   ' + highBlack + '|   [' + lowWhite + 'Q'  + highBlack + ']' + lowWhite + 'Quit';
+	//instructFrame.center( message.center(80) );
+	//instructFrame.draw();
 
 	userInput = '';
 	var currentOption = 0;
@@ -329,6 +362,11 @@ function chooseSport() {
 			optionsFrame.draw();
 
 		} // if arrow keys
+		else if ( userInput == "Q" ) {
+			cleanUp();
+			exit();
+		}
+
 	} // end while
 
 	var myoption = options[currentOption]['option'];
@@ -340,29 +378,23 @@ function chooseSport() {
 		var datesW = optionsFrame.width;
 		var datesFrame = new Frame( datesX, datesY, datesW, 3, 0, frame );
 
+		var datesFromJson = getDates();
+
 		// NFL schedules are weekly, not daily
 		if (mysport == 'nfl') {
 			var dates = [
-				{ 'date': '201403', 'name': 'Last week' },
-				{ 'date': '201404', 'name': 'This week' },
-				{ 'date': '201405', 'name': 'Next week' }
+				{ 'date': datesFromJson['lastweek'], 'name': 'Last week' },
+				{ 'date': datesFromJson['thisweek'], 'name': 'This week' },
+				{ 'date': datesFromJson['nextweek'], 'name': 'Next week' }
 			];
+
 		}
 		// All other sports use daily schedules
 		else {
-			var yesterday = new Date();
-			yesterday.setDate(yesterday.getDate() - 1);
-			yesterday = yesterday.yyyymmdd();
-			var today = new Date();
-			today = today.yyyymmdd();
-			var tomorrow = new Date();
-			tomorrow.setDate(tomorrow.getDate() + 1);
-			tomorrow = tomorrow.yyyymmdd();
-
 			var dates = [
-				{ 'date': yesterday, 'name': 'Yesterday' },
-				{ 'date': today, 'name': 'Today' },
-				{ 'date': tomorrow, 'name': 'Tomorrow' }
+				{ 'date': datesFromJson['yesterday'], 'name': 'Yesterday' },
+				{ 'date': datesFromJson['today'], 'name': 'Today' },
+				{ 'date': datesFromJson['tomorrow'], 'name': 'Tomorrow' }
 			];
 		}
 
@@ -377,9 +409,9 @@ function chooseSport() {
 		}
 		datesFrame.draw();
 
-		message = lowWhite + 'Use the arrow keys to choose a date, then hit Enter.';
-		instructFrame.center( message.center(80) );
-		instructFrame.draw();
+		//message = highBlack + '[' + lowWhite + 'Arrows' + highBlack + ']' + lowWhite + 'Navigate   ' + highBlack + '|   [' + lowWhite + 'Enter' + highBlack + ']' + lowWhite + ' Make selection   ' + highBlack + '|   [' + lowWhite + 'Q'  + highBlack + ']' + lowWhite + 'Quit';
+		//instructFrame.center( message.center(80) );
+		//instructFrame.draw();
 
 		userInput = '';
 		var currentDate = 0;
@@ -420,6 +452,11 @@ function chooseSport() {
 				datesFrame.draw();
 
 			} // if arrow keys
+			else if ( userInput == "Q" ) {
+				cleanUp();
+				exit();
+			}
+
 		} // end while
 
 		var mydate = dates[currentDate]['date'];
@@ -432,8 +469,9 @@ function chooseSport() {
 	}
 
 	optionsFrame.delete();
-
-	headerFrame.close();
+	instructFrame.delete();
+	headerFrame.delete();
+	
 	if (myoption == 'standings') { displayStandings(mysport); }
 	else if (myoption == 'events') { displayScores(mysport,mydate); }
 }
@@ -473,28 +511,32 @@ function getStats(sport,method,date) {
 	sport  = sport  || 'mlb';
 	method = method || 'standings';
 	date   = date   || null;
-
-	var jsonPath = js.exec_dir + 'cache/';
-	if (date) {
-		jsonPath = jsonPath + date + '/';
-	}
-	jsonPath = jsonPath + sport + "-" + method + ".json";
-
-	var jsonFile = new File( jsonPath );
-	jsonFile.open("r");
-	var jsonFileContents = jsonFile.read();
-	if (jsonFileContents) { 
-		var data = JSON.parse( jsonFileContents );
-		if (data) {
-			return data;
-		}
-		else {
-			return false;
-		}
+	if (method == 'standings') {
+		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + method.toUpperCase();
+		debug(db);
 	}
 	else {
+		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + date;
+		debug(db);
+	}
+
+	try {
+		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
+		var data = jsonClient.read("SPORTSSTATS", db, 1);
+		if (data === undefined) {
+			debug("JSON client error: jsonClient returned undefined");
+			return false;
+		}
+		else {
+			debug( JSON.stringify(data, null, 4) )
+			return data;
+		}
+	}
+	catch(err) {
+		debug("JSON client error: " + err);
 		return false;
 	}
+
 }
 
 
@@ -508,17 +550,33 @@ function getStats(sport,method,date) {
 
 function displayScores(sport,date) {
 	console.clear();
+	frame.cycle();
 	sport = sport || 'mlb';
 	date = date || new Date().yyyymmdd();
 	var json;
+
 	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
+	headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
+	headerFrame.gotoxy(2,1);
+	var sportHeader = sport + ' scoreboard';
+	sportHeader = sportHeader;
+	headerFrame.putmsg(highWhiteDarkCyan + sportHeader);
+	headerFrame.draw();
 
 	// Sorry message for Hockey and Football
 	if (sport == 'nhl') {
-		headerFrame.load(js.exec_dir + 'graphics/header-compact.bin', 80, 1);
-		headerFrame.gotoxy(1,1);
-		headerFrame.center(highCyan + 'We\'re sorry, but the ' + sport.toUpperCase() + ' feed isn\'t ready yet.');
-		headerFrame.draw();
+		var instructFrame = new Frame(1, 6, 80, 3, 0, frame);
+		instructFrame.center(lowWhite + 'Unfortunately, support for the ' + sport.toUpperCase() + ' feed isn\'t ready yet.');
+		instructFrame.crlf();
+		instructFrame.crlf();
+		instructFrame.center(lowWhite + 'Press any key to continue.');
+		instructFrame.draw();
+		frame.cycle();
+		console.getkey();
+		// clean up and return to main menu
+		headerFrame.delete();
+		instructFrame.delete();
+		chooseSport();
 	}
 	// Display scores
 	// RIGHT NOW this is factored for NBA, which is same as NFL and very close to NHL.
@@ -528,265 +586,283 @@ function displayScores(sport,date) {
 	else {
 		var method = "events";
 		var eventsJson = getStats(sport,method,date);
+
 		var statDate = eventsJson['events_date'].split('T')[0];
-		// Whittle down to just the actual event objects.
-		// Then convert the single array into chunks of 8 events,
-		// which is most games we can fit on screen at once
-		var chunks = chunk(eventsJson.event,8);
-		//debug( JSON.stringify(chunks, null, 4) );
 
-		var chunksLen = chunks.length;
-		for (var h=0; h<chunksLen; h++) {
-			var scoreFrame = new Frame(1, 3, 80, 19, 0, frame);
+		// add the date to header bar
+		headerFrame.gotoxy(63,1);
+		headerFrame.putmsg(highBlack + statDate);
+		headerFrame.draw();
 
-			// Iterate over the events in this chunk 
-			var events = chunks[h];
-			var eventsLen = events.length;
+		// Check if any events are actually scheduled
+		if (eventsJson.event.length < 1) {
+			var instructFrame = new Frame(1, 6, 80, 3, 0, frame);
+			instructFrame.center(lowWhite + 'No games scheduled on this date.');
+			instructFrame.crlf();
+			instructFrame.crlf();
+			instructFrame.center(lowWhite + 'Press any key to continue.');
+			instructFrame.draw();
+			frame.cycle();
+			console.getkey();
+			// clean up and return to main menu
+			headerFrame.delete();
+			instructFrame.delete();
+			chooseSport();
+		}
+		// Yep, looks like we do have events.
+		else {
+			// Whittle down to just the actual event objects.
+			// Then convert the single array into chunks of 8 events,
+			// which is most games we can fit on screen at once
+			var chunks = chunk(eventsJson.event,8);
+
+			var chunksLen = chunks.length;
+			for (var h=0; h<chunksLen; h++) {
+				var scoreFrame = new Frame(1, 3, 80, 19, 0, frame);
+
+				// Iterate over the events in this chunk 
+				var events = chunks[h];
+				var eventsLen = events.length;
 		
-			for (var i=0; i<eventsLen; i++) {
+				for (var i=0; i<eventsLen; i++) {
 
-				var event = events[i];
-				// display box score
-				if ( event.event_status == "completed" ) {
-					// number of periods
-					var len = event['away_period_scores'].length;
-					// default padding between columns
-					var paddingAmt = 2;
-					// default padding before vertical pipes
-					var paddingEndAmt = 2;
-					// if we went more than one OT, use smaller padding
-					if (len > 5) {
-						paddingAmt = 0;
-					}
-					// Generate the padding
-					var padding = ' '.repeat(paddingAmt);
-					var paddingEnd = ' '.repeat(paddingEndAmt);
-					// length of team column
-					if (sport == 'mlb') {
-						var teamLen = 10;
-					}
-					else if (sport == 'nfl') {
-						var teamLen = 11;
-					}
-					else {
-						var teamLen = 10;
-					}
-					// Width of all period columns (not including padding)
-					var periodLen = 2*len;
-					// Width of total column
-					var totalLen = 3;
-					// padding before each period and before spacer
-					var paddingLen = (paddingAmt * len) + paddingAmt;
-					// Length of topLine before the joint
-					var lineLen1 = teamLen + periodLen + paddingLen;
-					// Length of topLine after the joint
-					var lineLen2 = totalLen + 1;
-
-					var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(teamLen);
-					var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(teamLen);
-					// use Array.reduce to sum up each period's scores to get final score
-//  				var homeScore = event['home_period_scores'].reduce(function(a, b) { return a + b; });
-// 					var awayScore = event['away_period_scores'].reduce(function(a, b) { return a + b; });
-					if (sport == 'mlb') {
-						var homeScore = event['home_batter_totals']['runs'];
-						var awayScore = event['away_batter_totals']['runs'];
-					}
-					else {
-						var homeScore = event['home_totals']['points'];
-						var awayScore = event['away_totals']['points'];
-					}
-					var homeColor = lowWhite;
-					var awayColor = lowWhite;
-					if ( homeScore > awayScore ) { homeColor = highWhite; }
-					else { awayColor = highWhite; }
-
-
-
-					// BUILD THE BOX SCORE
-					// Previously I used a line-by-line method, which was
-					// inefficient, since I was using a for-loop to iterate over
-					// the periods for each line.
-					// Now I'm using just one loop. The advantage is that this 
-					// will let me set extra padding on cells that need it.
-
-					// start of label line
-					var labelLine = highBlack + ''.toString().ljust(teamLen);
-
-					// start of top gray line
-					var topLine = highBlack;
-					for (var j=0; j < teamLen; j++) {
-						topLine += charHorizSingle;
-					}
-
-					// start of away team line
-					var awayLine = awayColor + away;
-
-					// start of home team line
-					var homeLine = homeColor + home;
-
-
-					// Iterate over the periods
-					for (var j=0; j < len; j++) {
-						var period = j + 1;
-						var awayPeriodScore = event['away_period_scores'][j];
-						var homePeriodScore = event['home_period_scores'][j];
-						// NEED TO ADD
-						// {ut a subroutine here (for MLB) to check 
-						// if an inning had a double-digit score. If so,
-						// increase the size of the cell on all lines.
-
-
-						// PERIOD LABEL
-						labelLine += padding;
+					var event = events[i];
+					// display box score
+					if ( event.event_status == "completed" ) {
+						// number of periods
+						var len = event['away_period_scores'].length;
+						// default padding between columns
+						var paddingAmt = 2;
+						// default padding before vertical pipes
+						var paddingEndAmt = 2;
+						// if we went more than one OT, use smaller padding
+						if (len > 5) {
+							paddingAmt = 0;
+						}
+						// Generate the padding
+						var padding = ' '.repeat(paddingAmt);
+						var paddingEnd = ' '.repeat(paddingEndAmt);
+						// length of team column
 						if (sport == 'mlb') {
-							labelLine += period.toString().rjust(2); 
+							var teamLen = 10;
 						}
-						else if ( sport == 'nba' || sport == 'nfl' ) {
-							if (period < 5) { 
-								labelLine += period.toString().rjust(2); 
-							}
-							else { 
-								labelLine += 'ot'.rjust(2);
-							}
-						}
-						else if ( sport == 'nhl' ) {
-							if (period < 4) { 
-								labelLine += period.toString().rjust(2); 
-							}
-							else { 
-								labelLine += 'ot'.rjust(2);
-							}
-						}
-
-						// GRAY PIPE
-						topLine += ''.rjust(2 + paddingAmt, charHorizSingle);
-
-						// AWAY SCORE
-						awayLine += padding;
-						awayLine += awayPeriodScore.toString().rjust(2);
-
-						// HOME SCORE
-						homeLine += padding;
-						// In MLB, -1 indicates home team didn't bat in 9th inning
-						if (homePeriodScore < 0) {
-							homeLine += '-'.rjust(2);
+						else if (sport == 'nfl') {
+							var teamLen = 11;
 						}
 						else {
-							homeLine += homePeriodScore.toString().rjust(2);
+							var teamLen = 10;
+						}
+						// Width of all period columns (not including padding)
+						var periodLen = 2*len;
+						// Width of total column
+						var totalLen = 3;
+						// padding before each period and before spacer
+						var paddingLen = (paddingAmt * len) + paddingAmt;
+						// Length of topLine before the joint
+						var lineLen1 = teamLen + periodLen + paddingLen;
+						// Length of topLine after the joint
+						var lineLen2 = totalLen + 1;
+
+						var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(teamLen);
+						var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(teamLen);
+						// use Array.reduce to sum up each period's scores to get final score
+//		  				var homeScore = event['home_period_scores'].reduce(function(a, b) { return a + b; });
+// 						var awayScore = event['away_period_scores'].reduce(function(a, b) { return a + b; });
+						if (sport == 'mlb') {
+							var homeScore = event['home_batter_totals']['runs'];
+							var awayScore = event['away_batter_totals']['runs'];
+						}
+						else {
+							var homeScore = event['home_totals']['points'];
+							var awayScore = event['away_totals']['points'];
+						}
+						var homeColor = lowWhite;
+						var awayColor = lowWhite;
+						if ( homeScore > awayScore ) { homeColor = highWhite; }
+						else { awayColor = highWhite; }
+
+
+
+						// BUILD THE BOX SCORE
+						// Previously I used a line-by-line method, which was
+						// inefficient, since I was using a for-loop to iterate over
+						// the periods for each line.
+						// Now I'm using just one loop. The advantage is that this 
+						// will let me set extra padding on cells that need it.
+
+						// start of label line
+						var labelLine = highBlack + ''.toString().ljust(teamLen);
+
+						// start of top gray line
+						var topLine = highBlack;
+						for (var j=0; j < teamLen; j++) {
+							topLine += charHorizSingle;
 						}
 
-					}
+						// start of away team line
+						var awayLine = awayColor + away;
 
-					// BUILD END OF LABEL LINE
-					// this is the joint
-					labelLine += paddingEnd + ' ';
-					// totals
-					labelLine += ''.rjust((paddingEndAmt-1),' ') + 'tot'.toString().rjust(3);
-
-					// BUILD END OF TOP GRAY LINE
-					// add the joint
-					topLine += ''.rjust(paddingEndAmt, charHorizSingle);
-					topLine += charHorizSingleDownDouble;
-					for (var j=0; j < lineLen2; j++) {
-						topLine += charHorizSingle;
-					}
-
-					// BUILD AWAY TEAM LINE
-					awayLine += paddingEnd;
-					awayLine += highBlack + charVertDouble;
-					awayLine += paddingEnd + awayColor + awayScore.toString().rjust(2);
-
-					// BUILD HOME TEAM LINE
-					homeLine += paddingEnd;
-					homeLine += highBlack + charVertDouble;
-					homeLine += paddingEnd + homeColor + homeScore.toString().rjust(2);
+						// start of home team line
+						var homeLine = homeColor + home;
 
 
-					if ( isOdd(i) ) { 
-						var y = ( (i-1) / 2 ) * 5; 
-						var x = 42;
-					} 
-					else { 
-						var y = ( i / 2 ) * 5; 
-						var x = 0;
-					} 
+						// Iterate over the periods
+						for (var j=0; j < len; j++) {
+							var period = j + 1;
+							var awayPeriodScore = event['away_period_scores'][j];
+							var homePeriodScore = event['home_period_scores'][j];
+							// NEED TO ADD
+							// {ut a subroutine here (for MLB) to check 
+							// if an inning had a double-digit score. If so,
+							// increase the size of the cell on all lines.
 
-					scoreFrame.gotoxy(x,y+1);
-					scoreFrame.putmsg(labelLine);
-					scoreFrame.gotoxy(x,y+2);
-					scoreFrame.putmsg(topLine);
-					scoreFrame.gotoxy(x,y+3);
-					scoreFrame.putmsg(awayLine);
-					scoreFrame.gotoxy(x,y+4);
-					scoreFrame.putmsg(homeLine);
 
-					//debug(labelLine + '\r\n' + topLine +  '\r\n' + awayLine +  '\r\n' + homeLine +  '\r\n');
-					//debug('i: ' + i + '  |  i%4:' + i%4);
+							// PERIOD LABEL
+							labelLine += padding;
+							if (sport == 'mlb') {
+								labelLine += period.toString().rjust(2); 
+							}
+							else if ( sport == 'nba' || sport == 'nfl' ) {
+								if (period < 5) { 
+									labelLine += period.toString().rjust(2); 
+								}
+								else { 
+									labelLine += 'ot'.rjust(2);
+								}
+							}
+							else if ( sport == 'nhl' ) {
+								if (period < 4) { 
+									labelLine += period.toString().rjust(2); 
+								}
+								else { 
+									labelLine += 'ot'.rjust(2);
+								}
+							}
 
-				} // completed games
-				// This is a matchup, not a box score
+							// GRAY PIPE
+							topLine += ''.rjust(2 + paddingAmt, charHorizSingle);
+
+							// AWAY SCORE
+							awayLine += padding;
+							awayLine += awayPeriodScore.toString().rjust(2);
+
+							// HOME SCORE
+							homeLine += padding;
+							// In MLB, -1 indicates home team didn't bat in 9th inning
+							if (homePeriodScore < 0) {
+								homeLine += '-'.rjust(2);
+							}
+							else {
+								homeLine += homePeriodScore.toString().rjust(2);
+							}
+
+						}
+
+						// BUILD END OF LABEL LINE
+						// this is the joint
+						labelLine += paddingEnd + ' ';
+						// totals
+						labelLine += ''.rjust((paddingEndAmt-1),' ') + 'tot'.toString().rjust(3);
+
+						// BUILD END OF TOP GRAY LINE
+						// add the joint
+						topLine += ''.rjust(paddingEndAmt, charHorizSingle);
+						topLine += charHorizSingleDownDouble;
+						for (var j=0; j < lineLen2; j++) {
+							topLine += charHorizSingle;
+						}
+
+						// BUILD AWAY TEAM LINE
+						awayLine += paddingEnd;
+						awayLine += highBlack + charVertDouble;
+						awayLine += paddingEnd + awayColor + awayScore.toString().rjust(2);
+
+						// BUILD HOME TEAM LINE
+						homeLine += paddingEnd;
+						homeLine += highBlack + charVertDouble;
+						homeLine += paddingEnd + homeColor + homeScore.toString().rjust(2);
+
+
+						if ( isOdd(i) ) { 
+							var y = ( (i-1) / 2 ) * 5; 
+							var x = 42;
+						} 
+						else { 
+							var y = ( i / 2 ) * 5; 
+							var x = 0;
+						} 
+
+						scoreFrame.gotoxy(x,y+1);
+						scoreFrame.putmsg(labelLine);
+						scoreFrame.gotoxy(x,y+2);
+						scoreFrame.putmsg(topLine);
+						scoreFrame.gotoxy(x,y+3);
+						scoreFrame.putmsg(awayLine);
+						scoreFrame.gotoxy(x,y+4);
+						scoreFrame.putmsg(homeLine);
+
+						//debug(labelLine + '\r\n' + topLine +  '\r\n' + awayLine +  '\r\n' + homeLine +  '\r\n');
+						//debug('i: ' + i + '  |  i%4:' + i%4);
+
+					} // completed games
+					// This is a matchup, not a box score
+					else {
+						// 39
+						var away = cleanName(event.away_team.last_name).rjust(16) + ' ';
+						var home = (' ' + cleanName(event.home_team.last_name)).ljust(17);
+						var eventStartTime = new Date(event.start_date_time).timeNow();
+						var site = event.site.name;
+						eventStartTime = ' ' + eventStartTime.ljust(10);
+						site = site.rjust(26);
+
+						if ( isOdd(i) ) { 
+							var y = ( (i-1) / 2 ) * 5; 
+							var x = 42;
+						} 
+						else { 
+							var y = ( i / 2 ) * 5; 
+							var x = 0;
+						} 
+
+						scoreFrame.gotoxy(x,y+1);
+						scoreFrame.putmsg(highBlack + eventStartTime + site);
+						scoreFrame.gotoxy(x,y+2);
+						scoreFrame.putmsg(highBlack + charHorizSingle.repeat(38) + ' ');
+						scoreFrame.gotoxy(x,y+3);
+						scoreFrame.putmsg(lowWhite + away + ' at ' + home);
+					} // matchup
+				} // for loop iterating over events
+
+				// We have rendered the eight (or fewer) games in this chunk.
+				// Time to display them on the screen.
+				scoreFrame.draw();
+
+				// User prompt
+				var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
+				if ( h+1 == chunksLen) {
+					promptFrame.center(highCyan + 'Press any key to exit.');				
+					promptFrame.draw();
+				}
 				else {
-					// 39
-					var away = cleanName(event.away_team.last_name).rjust(16) + ' ';
-					var home = (' ' + cleanName(event.home_team.last_name)).ljust(17);
-					var eventStartTime = new Date(event.start_date_time).timeNow();
-					var site = event.site.name;
-					eventStartTime = ' ' + eventStartTime.ljust(10);
-					site = site.rjust(26);
+					promptFrame.center(highCyan + 'Press any key to see more.');				
+					promptFrame.draw();
+					console.getkey();
+				}
+				headerFrame.delete();
+				promptFrame.delete();
+				scoreFrame.delete();
 
-					if ( isOdd(i) ) { 
-						var y = ( (i-1) / 2 ) * 5; 
-						var x = 42;
-					} 
-					else { 
-						var y = ( i / 2 ) * 5; 
-						var x = 0;
-					} 
+			} // for loop iterating over chunks
 
-					scoreFrame.gotoxy(x,y+1);
-					scoreFrame.putmsg(highBlack + eventStartTime + site);
-					scoreFrame.gotoxy(x,y+2);
-					scoreFrame.putmsg(highBlack + charHorizSingle.repeat(38) + ' ');
-					scoreFrame.gotoxy(x,y+3);
-					scoreFrame.putmsg(lowWhite + away + ' at ' + home);
+			console.getkey();
 
-
-				} // matchup
-			} // for loop iterating over events
-
-			// We have rendered the eight (or fewer) games in this chunk.
-			// Time to display them on the screen.
-			scoreFrame.draw();
-
-			headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
-			headerFrame.gotoxy(2,1);
-			var sportHeader = sport + ' scoreboard';
-			sportHeader = sportHeader;
-			headerFrame.putmsg(highWhiteDarkCyan + sportHeader);
-			headerFrame.gotoxy(63,1);
-			headerFrame.putmsg(highBlack + statDate);
-			headerFrame.draw();
-
-			// User prompt
-			var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
-			if ( h+1 == chunksLen) {
-				promptFrame.center(highCyan + 'Press any key to exit.');				
-				promptFrame.draw();
-			}
-			else {
-				promptFrame.center(highCyan + 'Press any key to see more.');				
-				promptFrame.draw();
-				console.getkey();
-			}
-			promptFrame.delete();
-			scoreFrame.delete();
-
-		} // for loop iterating over chunks
-
-
-		console.getkey();
+		} // else (are events)
 
 	} // else nba/mlb
+
+	// return to main menu
+	chooseSport();
+
 } // displayScores()
 
 
@@ -802,6 +878,8 @@ function displayStandings(sport,byDivision) {
 	byDivision = byDivision || true;
 
 	console.clear();
+	frame.cycle();
+
 	var method = "standings";
 	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
 	var confFrameL = new Frame(1, 3, 39, 21, 0, frame);
@@ -888,7 +966,13 @@ function displayStandings(sport,byDivision) {
 	confFrameL.delete();
 	confFrameR.delete();
 	seperatorFrame.delete();
+
+	// return to main menu
+	chooseSport();
+
 } // displayStandings
+
+
 
 var cleanUp = function() {
 	frame.close();

@@ -11,21 +11,21 @@ I'm pulling my MLB and NBA data from Erik Berg's [xmlstats](https://erikberg.com
 
 Since xmlstats doesn't provide NFL data, I'm supplying it myself. I get game data using the [nflgame](https://github.com/BurntSushi/nflgame/) Python library by burntsushi, and I scrape NFL standings data from NFL.com. I take this NFL data and save it into a JSON format very similar to xmlstats to keep it all compatible.
 
-Right now, using Sports-Stats requires that you obtain an API key for the xmlstats service, and it requires the use of several Python scripts, which I haven't written documentation for. 
+If you want to scrape your own stats, this repo includes Python scripts to obtain the data from the sources I described above.
 
-I don't recommend doing this. In the near future, I intend to host my own Synchronet sports stats JSON service. Other sysops will connect to it to use the Sports-Stats door, without any need for scrapers or API keys.
+However, I highly recommend that sysops instead configure their boards to connect to my Sports Stats JSON service. It's very simple, and it's the default for this door.
 
-v0.3
+
+v0.4
 ---------------
 
-Please note, this is door is still under development, and remains very incomplete.
+As of version 0.4, Sports Stats is functional and available for all Synchronet SysOps.
 
-This version displays standings, schedules, and results for MLB, NFL, and NBA. It also has an icon-driven main menu.
+I have made many improvements to the interface, and I have set up a JSON service on my BBS to host stats for any SysOps who want to run Sports Stats.
 
 Features I intend to add in the future:
 
-* Display NHL stats (need a data source, first, though)
-* Hosted JSON DB service to serve stats to BBSes 
+* NHL stats
 * User preferences such as:
   * Pick favorite teams, which will be highlighted in a different color
   * Choose whether to display standings broken down by divisions, or only by leagues/conferences.

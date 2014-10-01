@@ -10,6 +10,7 @@ import datetime
 import time
 import os
 import shutil
+from subprocess32 import call
 #######################################################
 ###  NFL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
@@ -25,20 +26,23 @@ from json import encoder
 encoder.FLOAT_REPR = lambda o: format(o, '.15g')
 
 # Replace with path to your Sports Stats directory
-exec_dir = "/sbbs/xtrn/sportsstats/"
+exec_dir = '/sbbs/xtrn/sportsstats/'
 
 # Replace with your access token
-access_token = ""
+access_token = ''
 
 # Replace with your bot name and email/website to contact if there is a problem
-# e.g., "mybot/0.1 (https://erikberg.com/)"
-user_agent = ""
+# e.g., 'mybot/0.1 (https://erikberg.com/)'
+user_agent = ''
 
 sports = ['nba','mlb']
+
+statsObject = { 'SPORTSSTATS' : {} }
+
 yesterday = datetime.date.fromordinal(datetime.date.today().toordinal()-1).strftime('%Y%m%d')
 today = datetime.date.fromordinal(datetime.date.today().toordinal()).strftime('%Y%m%d')
 tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strftime('%Y%m%d')
-test = "20130529"
+test = '20130529'
 dates = [yesterday,today,tomorrow,test]
 
 
@@ -73,13 +77,13 @@ for week in weeks:
 # an explanation
 def build_url(host, sport, method, id, format, parameters):
 	if method == 'events':
-		path = "/".join(filter(None, (method, id)));
+		path = '/'.join(filter(None, (method, id)));
 	else:
-		path = "/".join(filter(None, (sport, method, id)));
-	url = "https://" + host + "/" + path + "." + format
+		path = '/'.join(filter(None, (sport, method, id)));
+	url = 'https://' + host + '/' + path + '.' + format
 	if parameters:
 		paramstring = urllib.urlencode(parameters)
-		url = url + "?" + paramstring
+		url = url + '?' + paramstring
 	return url
 
 
@@ -92,8 +96,8 @@ def getStats(sport=None, method=None, date=None, id=None):
 		date = today
 
 	# set the API method, format, and any parameters
-	host = "erikberg.com"
-	format = "json"
+	host = 'erikberg.com'
+	format = 'json'
 	parameters = {
 		'sport': mysport,
 		'date': date
@@ -104,27 +108,27 @@ def getStats(sport=None, method=None, date=None, id=None):
 
 	req = urllib2.Request(url)
 	# Set Authorization header
-	req.add_header("Authorization", "Bearer " + access_token)
+	req.add_header('Authorization', 'Bearer ' + access_token)
 	# Set user agent
-	req.add_header("User-agent", user_agent)
+	req.add_header('User-agent', user_agent)
 	# Tell server we can handle gzipped content
-	req.add_header("Accept-encoding", "gzip")
+	req.add_header('Accept-encoding', 'gzip')
 
 	# add delay so we don't surpass API rate limit
-	time.sleep(15)
+	time.sleep(11)
 	print url
 
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, err:
-		print "HTTPError retrieving file: {0}".format(err.code)
+		print 'HTTPError retrieving file: {0}'.format(err.code)
 		sys.exit(1)
 	except urllib2.URLError, err:
-		print "URLError retrieving file: {0}".format(err.reason)
+		print 'URLError retrieving file: {0}'.format(err.reason)
 		sys.exit(1)
 
 	data = None
-	if "gzip" == response.info().get("Content-encoding"):
+	if 'gzip' == response.info().get('Content-encoding'):
 		buf = StringIO(response.read())
 		f = gzip.GzipFile(fileobj=buf)
 		data = f.read()
@@ -146,40 +150,40 @@ def save_result(mysport,method,date,data):
 	# if directory doesn't exist, create it.
 	if not os.path.exists(directory):
 		os.makedirs(directory)
-	f = open(filename,"wb")
+	f = open(filename,'wb')
 	f.write( json.dumps(data) )
 	f.close()
 
-#json.dumps(round(1.0/3.0, 2))
 
 
 
 def main(mysport,date):
-		# grab today events
-		eventsJson = getStats(mysport, "events", date)
-		if eventsJson:
-			events = json.loads(eventsJson)
-			# iterate over events
-			for event in events['event']:
-				# if the game is finished, append box score data to the event file
-				if event['event_status'] == 'completed':
-					# get id
-					id = event['event_id']
-					boxJson = getStats(mysport, "boxscore", date, id)
-					if boxJson:
-						box = json.loads(boxJson)
-						event["away_period_scores"] = box["away_period_scores"]
-						event["home_period_scores"] = box["home_period_scores"]
-						if mysport == 'mlb':
-							event["away_batter_totals"] = box["away_batter_totals"]
-							event["home_batter_totals"] = box["home_batter_totals"]
-						elif mysport == 'nba':
-							event["away_totals"] = box["away_totals"]
-							event["home_totals"] = box["home_totals"]
+	# grab today events
+	eventsJson = getStats(mysport, 'events', date)
+	if eventsJson:
+		events = json.loads(eventsJson)
+		# iterate over events
+		for event in events['event']:
+			# if the game is finished, append box score data to the event file
+			if event['event_status'] == 'completed':
+				# get id
+				id = event['event_id']
+				boxJson = getStats(mysport, 'boxscore', date, id)
+				if boxJson:
+					box = json.loads(boxJson)
+					event['away_period_scores'] = box['away_period_scores']
+					event['home_period_scores'] = box['home_period_scores']
+					if mysport == 'mlb':
+						event['away_batter_totals'] = box['away_batter_totals']
+						event['home_batter_totals'] = box['home_batter_totals']
+					elif mysport == 'nba':
+						event['away_totals'] = box['away_totals']
+						event['home_totals'] = box['home_totals']
 
-						#print str(box["away_totals"]["free_throw_percentage"])
-			save_result(mysport,"events",date,events)
-
+					#print str(box['away_totals']['free_throw_percentage'])
+		save_result(mysport,'events',date,events)
+		return events
+	return None
 
 
 def cleanup(dates):
@@ -191,32 +195,72 @@ def cleanup(dates):
 				# do nothing
 				pass
 			else:
-				print "deleted: " + dir
+				print 'deleted: ' + dir
 				shutil.rmtree( root + dir )
 
 
 	
-if __name__ == "__main__":
+if __name__ == '__main__':
+	statsObject['SPORTSSTATS']['DATES'] = {}
+
 	#######################################################
 	###  NFL SPECIFIC SECTION
 	###  If XML stats ever adds football, then replace the 
 	###  following section of code with this one line:
 	###  cleanup(dates)
 	#######################################################
+	# Add sport to global stats object
+	statsObject['SPORTSSTATS']['NFL'] = {}
+	# Purge out outdated cache files
 	allDates = dates + nflDates
 	cleanup(allDates)
 	for week in weeks:
-		parseSchedule(thisYear, week)
-	scrapeStandings()
+		theEvents = parseSchedule(thisYear, week)
+		# Add events to global stats object
+		theWeek = str(thisYear) + str(week).zfill(2)
+		statsObject['SPORTSSTATS']['NFL'][theWeek] = theEvents
+	theStandings = scrapeStandings()
+	# Add standings to global stats object
+	statsObject['SPORTSSTATS']['NFL']['STANDINGS'] = theStandings
+	# Add relative NFL weeks
+	statsObject['SPORTSSTATS']['DATES']['lastweek'] = nflDates[0]
+	statsObject['SPORTSSTATS']['DATES']['thisweek'] = nflDates[1]
+	statsObject['SPORTSSTATS']['DATES']['nextweek'] = nflDates[2]
+
 	### END NFL SPECIFIC ##################################
 
+
+	# Add relative dates
+	statsObject['SPORTSSTATS']['DATES']['yesterday'] = yesterday
+	statsObject['SPORTSSTATS']['DATES']['today'] = today
+	statsObject['SPORTSSTATS']['DATES']['tomorrow'] = tomorrow
+
 	for mysport in sports:
+		# Add sport to global stats object
+		statsObject['SPORTSSTATS'][mysport.upper()] = {}
+
 		for date in dates:
-			main(mysport,date)
+			theEvents = None
+			theEvents = main(mysport,date)
+			# Add events to global stats object
+			statsObject['SPORTSSTATS'][mysport.upper()][date] = theEvents
 
 		# grab standings
-		standingsJson = getStats(mysport, "standings", date)
+		standingsJson = getStats(mysport, 'standings', date)
 		if standingsJson:
-			standings = json.loads(standingsJson)
-			save_result(mysport,"standings",None,standings)
+			theStandings = None
+			theStandings = json.loads(standingsJson)
+			# write standings into an individual json file in /cache/
+			save_result(mysport,'standings',None,theStandings)
+			# Add standings to global stats object
+			statsObject['SPORTSSTATS'][mysport.upper()]['STANDINGS'] = theStandings
 
+	# save global stats object into Synchronet-style JSON database
+	filename = exec_dir + 'sportsstats.json'
+	f = open(filename,'wb')
+	f.write( json.dumps(statsObject) )
+	f.close()
+
+	# Tell Synchronet to refresh the JSON service
+	call(['/sbbs/exec/jsexec', '/sbbs/xtrn/sportsstats/json-service-refresh.js'])
+	 
