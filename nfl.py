@@ -270,7 +270,8 @@ def parseSchedule(year, week):
 
 	#print events
 	date = str(year) + str(week).zfill(2)
-	save_result('nfl','events',date,events)
+	# save results into separate event file
+	#save_result('nfl','events',date,events)
 	return events
 
 
@@ -390,6 +391,6 @@ def scrapeStandings():
 							"streak_type": streak_type
 						}
 						standings['standing'].append(standingObj)
-		save_result('nfl','standings',None,standings)
+		#save_result('nfl','standings',None,standings)
 		return standings
 	return None

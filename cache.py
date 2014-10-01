@@ -29,11 +29,11 @@ encoder.FLOAT_REPR = lambda o: format(o, '.15g')
 exec_dir = '/sbbs/xtrn/sportsstats/'
 
 # Replace with your access token
-access_token = ''
+access_token = 'b8e05c70-8614-4c8d-bcfc-8da8f826c1b6'
 
 # Replace with your bot name and email/website to contact if there is a problem
 # e.g., 'mybot/0.1 (https://erikberg.com/)'
-user_agent = ''
+user_agent = 'guardian-of-forever/1.0 (telnet://guardian.synchro.net)'
 
 sports = ['nba','mlb']
 
@@ -181,7 +181,8 @@ def main(mysport,date):
 						event['home_totals'] = box['home_totals']
 
 					#print str(box['away_totals']['free_throw_percentage'])
-		save_result(mysport,'events',date,events)
+		# save results into separate event file
+		#save_result(mysport,'events',date,events)
 		return events
 	return None
 
@@ -212,8 +213,8 @@ if __name__ == '__main__':
 	# Add sport to global stats object
 	statsObject['SPORTSSTATS']['NFL'] = {}
 	# Purge out outdated cache files
-	allDates = dates + nflDates
-	cleanup(allDates)
+	#allDates = dates + nflDates
+	#cleanup(allDates)
 	for week in weeks:
 		theEvents = parseSchedule(thisYear, week)
 		# Add events to global stats object
@@ -251,7 +252,7 @@ if __name__ == '__main__':
 			theStandings = None
 			theStandings = json.loads(standingsJson)
 			# write standings into an individual json file in /cache/
-			save_result(mysport,'standings',None,theStandings)
+			#save_result(mysport,'standings',None,theStandings)
 			# Add standings to global stats object
 			statsObject['SPORTSSTATS'][mysport.upper()]['STANDINGS'] = theStandings
 
