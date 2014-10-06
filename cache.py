@@ -29,11 +29,11 @@ encoder.FLOAT_REPR = lambda o: format(o, '.15g')
 exec_dir = '/sbbs/xtrn/sportsstats/'
 
 # Replace with your access token
-access_token = 'b8e05c70-8614-4c8d-bcfc-8da8f826c1b6'
+access_token = ''
 
 # Replace with your bot name and email/website to contact if there is a problem
 # e.g., 'mybot/0.1 (https://erikberg.com/)'
-user_agent = 'guardian-of-forever/1.0 (telnet://guardian.synchro.net)'
+user_agent = ''
 
 sports = ['nba','mlb']
 
