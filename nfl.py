@@ -12,9 +12,10 @@ import nflgame.update_sched
 from bs4 import BeautifulSoup
 from cache import *
 import datetime
+import re
 
 
-teamNames = [
+nflTeamNames = [
 	{ 'abbrev':'ARI', 'city': 'Arizona', 'team': 'Cardinals', 'full': 'Arizona Cardinals', 'alternates': [], 'site': 'University of Phoenix Stadium' },
 	{ 'abbrev':'ATL', 'city': 'Atlanta', 'team': 'Falcons', 'full': 'Atlanta Falcons', 'alternates': [], 'site': 'Georgia Dome' },
 	{ 'abbrev':'BAL', 'city': 'Baltimore', 'team': 'Ravens', 'full': 'Baltimore Ravens', 'alternates': [], 'site': 'M&T Bank Stadium' },
@@ -48,25 +49,25 @@ teamNames = [
 	{ 'abbrev':'TEN', 'city': 'Tennessee', 'team': 'Titans', 'full': 'Tennessee Titans', 'alternates': [], 'site': 'LP Field' },
 	{ 'abbrev':'WAS', 'city': 'Washington', 'team': 'Redskins', 'full': 'Washington Redskins', 'alternates': ['WSH'], 'site': 'FedExField' },
 ]
-def getTeamCity(team):
+def getTeamCity(team,teamNames):
 	for t in teamNames:
 		if t['abbrev'] == team:
 			return t['city']
 	return team
 
-def getTeamName(team):
+def getTeamName(team,teamNames):
 	for t in teamNames:
 		if t['abbrev'] == team:
 			return t['team']
 	return team
 
-def getTeamFull(team):
+def getTeamFull(team,teamNames):
 	for t in teamNames:
 		if t['abbrev'] == team:
 			return t['full']
 	return team
 
-def getTeamStadium(team):
+def getTeamStadium(team,teamNames):
 	for t in teamNames:
 		if t['abbrev'] == team:
 			return t['site']
@@ -132,18 +133,18 @@ def parseSchedule(year, week):
 	for s in games_sked:
 		gameKey = s['gamekey']
 
-		homeCity = getTeamCity( s['home'] )
-		awayCity = getTeamCity( s['away'] )
+		homeCity = getTeamCity( s['home'],nflTeamNames )
+		awayCity = getTeamCity( s['away'],nflTeamNames )
 
-		homeTeam = getTeamName( s['home'] )
-		awayTeam = getTeamName( s['away'] )
+		homeTeam = getTeamName( s['home'],nflTeamNames )
+		awayTeam = getTeamName( s['away'],nflTeamNames )
 
-		homeFull = getTeamFull( s['home'] )
-		awayFull = getTeamFull( s['away'] )
+		homeFull = getTeamFull( s['home'],nflTeamNames )
+		awayFull = getTeamFull( s['away'],nflTeamNames )
 
 		# this is a stop-gap, since teams sometimes play at neutral sites.
 		# I will have to scrape the game sites from NFL.com at some point.
-		stadium = getTeamStadium( s['home'] )
+		stadium = getTeamStadium( s['home'],nflTeamNames )
 
 		theDate = str(s['year']) + '-' + str(s['month']).zfill(2)  + '-' + str(s['day']).zfill(2)
 		theTime = s['time']
@@ -155,8 +156,8 @@ def parseSchedule(year, week):
 		eventsDateTime = theDate + 'T' + theTime + '-04:00'
 
 		eventId = str(s['year']) + str(s['month']).zfill(2) + str(s['day']).zfill(2)
-		eventId = eventId + '-' + awayCity + '-' + awayTeam
-		eventId = eventId + '-at-' + homeCity + '-' + homeTeam
+		eventId = eventId + '-' + awayCity.lower().replace('.','') + '-' + awayTeam.lower()
+		eventId = eventId + '-at-' + homeCity.lower().replace('.','') + '-' + homeTeam.lower()
 		eventId = eventId.replace(' ','-')
 		#print eventsDate
 		#print eventsDateTime
@@ -352,12 +353,14 @@ def scrapeStandings():
 							streak_type = 'loss'
 						elif streak[-1:] == 'W':
 							streak_type = 'win'
+						# Change 2W to W2
+						streak = re.sub(r'(\d+)(\w)',r'\2\1',streak)
 
 
 						standingObj = {
 	#						"team_id":"miami-heat",
-							"last_name": getTeamName(teamAbbr),
-							"first_name": getTeamCity(teamAbbr),
+							"last_name": getTeamName(teamAbbr,nflTeamNames),
+							"first_name": getTeamCity(teamAbbr,nflTeamNames),
 							"conference": conference,
 							"division": division,
 	#						"rank":2,
@@ -365,6 +368,7 @@ def scrapeStandings():
 	#						"playoff_seed":2,
 							"won": w,
 							"lost":l,
+							"tied":t,
 							"win_percentage": pct,
 	#						"games_back":2.0,
 	#						"games_played":82,

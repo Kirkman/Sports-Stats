@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Oct 1, 2014               #
+#        date: Oct 21, 2014              #
 #                                        #
 ##########################################
 
@@ -16,7 +16,7 @@
 INTRODUCTION
 
 Sports Stats allows your users to check recent scores, upcoming
-schedules, and team standings for NFL, NBA, and MLB.
+schedules, and team standings for NFL, NBA, NHL, and MLB.
 
 My BBS hosts a JSON database service which provides these stats
 for you. The instructions below will explain how to set it up.
@@ -85,7 +85,6 @@ If you find any, just email me at the address above.
 
 
 Future plans:
-* NHL stats
 * Pick favorite teams, which will be highlighted in a different color
 * Display standings by divisions, or only by leagues/conferences.
 * General interface improvements
@@ -100,8 +99,10 @@ Stats used on this door come from several sources:
 * The primary source is Erik Berg's xmlstats service: https://erikberg.com/api
 
 * I use the "nflgame" Python library by burntsushi to obtain
-game data. Other NFL information, such as standings and stadiums, I am
-scraping myself.
+game data. 
+
+* I am scraping other NFL information, such as standings and stadiums, 
+from NFL.com. Similarly, I scrape all NHL information from NHL.com.
 
 Thanks also to rswindell, mcmlxxix, deuce, echicken and many others
 for their work on Synchronet's Javascript libaries, and for their

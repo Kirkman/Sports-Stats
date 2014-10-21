@@ -12,11 +12,14 @@ import os
 import shutil
 from subprocess32 import call
 #######################################################
-###  NFL SPECIFIC SECTION
+###  NFL/NHL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
 #######################################################
-from nfl import *
-### END NFL SPECIFIC ##################################
+import nfl
+import nhl
+import nflgame
+import nflgame.update_sched
+### END NFL/NHL SPECIFIC ##################################
 
 
 
@@ -35,7 +38,7 @@ access_token = ''
 # e.g., 'mybot/0.1 (https://erikberg.com/)'
 user_agent = ''
 
-sports = ['nba','mlb']
+sports = ['mlb','nba']
 
 statsObject = { 'SPORTSSTATS' : {} }
 
@@ -43,7 +46,7 @@ yesterday = datetime.date.fromordinal(datetime.date.today().toordinal()-1).strft
 today = datetime.date.fromordinal(datetime.date.today().toordinal()).strftime('%Y%m%d')
 tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strftime('%Y%m%d')
 test = '20130529'
-dates = [yesterday,today,tomorrow,test]
+dates = [tomorrow,today,yesterday,test]
 
 
 #######################################################
@@ -122,10 +125,17 @@ def getStats(sport=None, method=None, date=None, id=None):
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, err:
 		print 'HTTPError retrieving file: {0}'.format(err.code)
-		sys.exit(1)
+		return False
+		#sys.exit(1)
 	except urllib2.URLError, err:
 		print 'URLError retrieving file: {0}'.format(err.reason)
-		sys.exit(1)
+		return False
+		#sys.exit(1)
+	except Exception:
+		import traceback
+		print 'Exception: {0}'.format( traceback.format_exc() )
+		return False
+
 
 	data = None
 	if 'gzip' == response.info().get('Content-encoding'):
@@ -159,16 +169,23 @@ def save_result(mysport,method,date,data):
 
 def main(mysport,date):
 	# grab today events
+	print "================================================="
+	print "Getting " + mysport + " on " + date
 	eventsJson = getStats(mysport, 'events', date)
+	print eventsJson
 	if eventsJson:
 		events = json.loads(eventsJson)
 		# iterate over events
 		for event in events['event']:
+			print "----------------------------------------------"
+			print event
 			# if the game is finished, append box score data to the event file
-			if event['event_status'] == 'completed':
+			if (event['event_status'] is 'completed') and (event['season_type'] in ['regular','post']):
 				# get id
 				id = event['event_id']
+				print "Getting box "
 				boxJson = getStats(mysport, 'boxscore', date, id)
+				print boxJson
 				if boxJson:
 					box = json.loads(boxJson)
 					event['away_period_scores'] = box['away_period_scores']
@@ -179,6 +196,8 @@ def main(mysport,date):
 					elif mysport == 'nba':
 						event['away_totals'] = box['away_totals']
 						event['home_totals'] = box['home_totals']
+				else:
+					boxJson = None
 
 					#print str(box['away_totals']['free_throw_percentage'])
 		# save results into separate event file
@@ -216,11 +235,11 @@ if __name__ == '__main__':
 	#allDates = dates + nflDates
 	#cleanup(allDates)
 	for week in weeks:
-		theEvents = parseSchedule(thisYear, week)
+		theEvents = nfl.parseSchedule(thisYear, week)
 		# Add events to global stats object
 		theWeek = str(thisYear) + str(week).zfill(2)
 		statsObject['SPORTSSTATS']['NFL'][theWeek] = theEvents
-	theStandings = scrapeStandings()
+	theStandings = nfl.scrapeStandings()
 	# Add standings to global stats object
 	statsObject['SPORTSSTATS']['NFL']['STANDINGS'] = theStandings
 	# Add relative NFL weeks
@@ -229,6 +248,23 @@ if __name__ == '__main__':
 	statsObject['SPORTSSTATS']['DATES']['nextweek'] = nflDates[2]
 
 	### END NFL SPECIFIC ##################################
+
+
+
+	#######################################################
+	###  NHL SPECIFIC SECTION
+	#######################################################
+	# Add sport to global stats object
+	statsObject['SPORTSSTATS']['NHL'] = {}
+	for date in dates:
+		theEvents = nhl.scrapeGames(date)
+		statsObject['SPORTSSTATS']['NHL'][date] = theEvents
+	theStandings = nhl.scrapeStandings()
+	# Add standings to global stats object
+	statsObject['SPORTSSTATS']['NHL']['STANDINGS'] = theStandings
+
+	### END NHL SPECIFIC ##################################
+
 
 
 	# Add relative dates
