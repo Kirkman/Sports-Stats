@@ -76,8 +76,8 @@ function cleanName(team,method) {
 	if (method == 'standings') {
 		replacements = [
 	//		['^' : '',
-			[/^NL$/i, 'American'],
-			[/^AL$/i, 'National'],
+			[/^NL$/i, 'National'],
+			[/^AL$/i, 'American'],
 			[/^C$/i, 'Central'],
 			[/^E$/i, 'East'],
 			[/^W$/i, 'West'],
@@ -538,11 +538,11 @@ function getStats(sport,method,date) {
 	date   = date   || null;
 	if (method == 'standings') {
 		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + method.toUpperCase();
-		debug(db);
+		//debug(db);
 	}
 	else {
 		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + date;
-		debug(db);
+		//debug(db);
 	}
 
 	try {
@@ -553,7 +553,7 @@ function getStats(sport,method,date) {
 			return false;
 		}
 		else {
-			debug( JSON.stringify(data, null, 4) )
+			//debug( JSON.stringify(data, null, 4) )
 			return data;
 		}
 	}
@@ -589,10 +589,6 @@ function displayScores(sport,date) {
 	headerFrame.draw();
 
 	// Display scores
-	// RIGHT NOW this is factored for NBA, which is same as NFL and very close to NHL.
-	// There are two frames, left and right, so that two box scores can go side-by-side.
-	// Baseball's score by innings is much longer, so that will use just one frame.
-	// But I haven't written the baseball part yet.
 	var method = "events";
 	var eventsJson = getStats(sport,method,date);
 
@@ -652,8 +648,8 @@ function displayScores(sport,date) {
 					var padding = ' '.repeat(paddingAmt);
 					var paddingEnd = ' '.repeat(paddingEndAmt);
 					// length of team column
-					if (sport == 'mlb') {
-						var teamLen = 10;
+					if (sport == 'nhl') {
+						var teamLen = 12;
 					}
 					else if (sport == 'nfl') {
 						var teamLen = 11;
@@ -718,6 +714,13 @@ function displayScores(sport,date) {
 					// Iterate over the periods
 					for (var j=0; j < len; j++) {
 						var period = j + 1;
+
+						// Need to reduce first period padding in NHL
+						var thePadding = padding;
+						if (sport == 'nhl' && j == 0) {
+							thePadding = thePadding.slice(1);
+						}
+
 						var awayPeriodScore = event['away_period_scores'][j];
 						var homePeriodScore = event['home_period_scores'][j];
 						// NEED TO ADD
@@ -727,7 +730,7 @@ function displayScores(sport,date) {
 
 
 						// PERIOD LABEL
-						labelLine += padding;
+						labelLine += thePadding;
 						if (sport == 'mlb') {
 							labelLine += period.toString().rjust(2); 
 						}
@@ -743,20 +746,28 @@ function displayScores(sport,date) {
 							if (period < 4) { 
 								labelLine += period.toString().rjust(2); 
 							}
-							else { 
+							else if (period < 5) {  
 								labelLine += 'ot'.rjust(2);
+							}
+							else {  
+								labelLine += 'so'.rjust(2);
 							}
 						}
 
 						// GRAY PIPE
-						topLine += ''.rjust(2 + paddingAmt, charHorizSingle);
+						var pipePadding = 2 + paddingAmt;
+						// Need to reduce first period padding in NHL
+						if (sport == 'nhl' && j == 0) {
+							pipePadding -= 1;
+						}
+						topLine += ''.rjust(pipePadding, charHorizSingle);
 
 						// AWAY SCORE
-						awayLine += padding;
+						awayLine += thePadding;
 						awayLine += awayPeriodScore.toString().rjust(2);
 
 						// HOME SCORE
-						homeLine += padding;
+						homeLine += thePadding;
 						// In MLB, -1 indicates home team didn't bat in 9th inning
 						if (homePeriodScore < 0) {
 							homeLine += '-'.rjust(2);
@@ -798,7 +809,7 @@ function displayScores(sport,date) {
 					} 
 					else { 
 						var y = ( i / 2 ) * 5; 
-						var x = 0;
+						var x = 1;
 					} 
 
 					scoreFrame.gotoxy(x,y+1);
@@ -813,7 +824,7 @@ function displayScores(sport,date) {
 					//debug(labelLine + '\r\n' + topLine +  '\r\n' + awayLine +  '\r\n' + homeLine +  '\r\n');
 					//debug('i: ' + i + '  |  i%4:' + i%4);
 
-				} // completed games
+				} // if game is completed
 				// This is a matchup, not a box score
 				else {
 					// 39
@@ -909,6 +920,7 @@ function displayStandings(sport,byDivision) {
 			thisFrame.putmsg( outputConf(conferences[i],sport));
 			thisFrame.crlf();
 			var thisConfStandings = json.filter( function(x){return x.conference === conferences[i];} );
+
 			// There are circumstances where I won't want to break down the standings
 			// all the way to the division level. So I have added an optional 
 			// byDivision variable, which defaults to True. If you set it to false
