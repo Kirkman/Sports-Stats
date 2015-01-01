@@ -156,10 +156,15 @@ def scrapeGames(scrapeDate):
 				theTime = None
 				#print 'COMPLETED'
 			# This game is underway, or a preview
-			# NEED TO ADD: Extra logic to check if game is underway
 			else:
-				eventStatus = 'scheduled'
-				theTime = status
+				# Check if game is underway
+				if any(x in status for x in ['1st','2nd','3rd','ot','so']):
+					eventStatus = 'scheduled'
+					theTime = None
+				# Otherwise, game is preview
+				else:
+					eventStatus = 'scheduled'
+					theTime = status
 
 
 			home = homeRow[0].select('td:nth-of-type(1) a')[0]['rel'][0]
@@ -178,10 +183,20 @@ def scrapeGames(scrapeDate):
 			# I will have to scrape the game sites from NFL.com at some point.
 			stadium = getTeamStadium( home,nhlTeamNames )
 
+			# An issue here is that once games get underway, I have no way
+			# of finding out what time they started. The start time gets replaced
+			# by the time remaining. 
+			# One possible solution would be to scrape the HTML game summary,
+			# which lists the start time. I would have to get the box score ID
+			# then create a url like this: 
+			# http://www.nhl.com/scores/htmlreports/20142015/GS020091.HTM
+			# The stadium and start time is located in table#GameInfo, 
+			# in the seventh <tr>. The <td> has no class or id. 
+
 			theDate = scrapeDateObj.strftime('%Y-%m-%d')
-			if theTime:
+			if theTime and (theTime.lower() != 'ppd'):
 				theTime = theTime.replace('ET','EST')
-				#print theTime
+				print theTime
 				timePieces = theTime.split(' ')
 				timeNumbers = timePieces[0].split(':')
 				theTime = timeNumbers[0].zfill(2) + ':' + timeNumbers[1].zfill(2) + ' PM'

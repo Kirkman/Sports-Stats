@@ -423,6 +423,21 @@ function chooseSport() {
 			];
 		}
 
+		// TEMPORARY FIX
+		// I need to do more work about how to handle postseason and offseason.
+		// For now in the NFL, I am storing "nextweek" as a null value
+		// because nflgame won't return a schedule for next week.
+		// In the future I want to store a value for each league indicating
+		// whether a particular date/week is pre/reg/post/off-season. Then I
+		// could customize these menu options depending on the season's phase.
+
+		// If any of the dates are null, then let's remove them
+		for(var i = dates.length -1; i >= 0; i--) {
+			if ( dates[i]['date'] == null ) {
+				dates.splice(i, 1);
+			}
+		}
+		// END TEMPORARY FIX
 
 		datesFrame.gotoxy(0,1);
 		for (var i=0; i<dates.length; i++) {

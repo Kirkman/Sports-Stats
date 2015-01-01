@@ -45,31 +45,67 @@ statsObject = { 'SPORTSSTATS' : {} }
 yesterday = datetime.date.fromordinal(datetime.date.today().toordinal()-1).strftime('%Y%m%d')
 today = datetime.date.fromordinal(datetime.date.today().toordinal()).strftime('%Y%m%d')
 tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strftime('%Y%m%d')
-test = '20130529'
-dates = [tomorrow,today,yesterday,test]
+dates = [tomorrow,today,yesterday]
 
 
 #######################################################
 ###  NFL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
 #######################################################
+# Get the current year and week number
 thisYear, thisWeek = nflgame.live.current_year_and_week()
+
+# Get the current season phase ('PRE', 'REG', or 'POST')
+thisPhase = nflgame.live._cur_season_phase
+
+# If we're in postseason, change the week number from '1' to '18', etc
+# I'm doing this so that I can continue to store the games in this style:
+# statsObject['SPORTSSTATS']['DATES']['201418']
+if thisPhase == 'POST':
+	thisWeek = thisWeek + 17
+
+# Create weeks list
 weeks = []
+
 # Figure out the week numbers for last week, this week, and next week
+# Also figure out if particular weeks are regular or postseason
 if thisWeek:
-	# there is no last week if this is week 1
-	if thisWeek > 1:
+
+	# For Weeks 2-16 everything is normal and easy
+	if thisWeek > 1 and thisWeek < 17:
 		lastWeek = thisWeek - 1
-		weeks.append(lastWeek)
-	# add this week
-	weeks.append(thisWeek)
-	# there is no next week if this is week 17
-	if thisWeek < 17:
 		nextWeek = thisWeek + 1
-		weeks.append(nextWeek)
-nflDates = []
-for week in weeks:
-	nflDates.append( str(thisYear) + str(week).zfill(2) )
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'REG', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'REG', 'relative': 'nextweek'} )
+	# final week of regular season
+	elif thisWeek == 17:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'REG', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
+	# first week of playoffs
+	elif thisWeek == 18:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
+	# in the middle of playoffs
+	elif thisWeek > 18 and thisWeek < 21:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'POST', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
+	# super bowl, no more playoffs
+	elif thisWeek > 21 :
+		lastWeek = thisWeek - 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'POST', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
+		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'nextweek'} )
+	print weeks
 
 ### END NFL SPECIFIC ##################################
 
@@ -180,10 +216,10 @@ def main(mysport,date):
 			print "----------------------------------------------"
 			print event
 			# if the game is finished, append box score data to the event file
-			if (event['event_status'] is 'completed') and (event['season_type'] in ['regular','post']):
+			if (event['event_status'].lower() == 'completed') and (event['season_type'] in ['regular','post']):
 				# get id
 				id = event['event_id']
-				print "Getting box "
+				print "Getting box " + event['event_id']
 				boxJson = getStats(mysport, 'boxscore', date, id)
 				print boxJson
 				if boxJson:
@@ -235,17 +271,31 @@ if __name__ == '__main__':
 	#allDates = dates + nflDates
 	#cleanup(allDates)
 	for week in weeks:
-		theEvents = nfl.parseSchedule(thisYear, week)
-		# Add events to global stats object
-		theWeek = str(thisYear) + str(week).zfill(2)
-		statsObject['SPORTSSTATS']['NFL'][theWeek] = theEvents
+		# Only grab skeds if If there's a week number. Otherwise it's the offseason. 
+		if week['num'] is not None:
+			# During the postseason, we cannot grab the next week's schedule.
+			# Instead, let's store nulls to indicate this.
+			if thisPhase == 'POST' and week['num'] > thisWeek:
+				theWeek = week['date']
+				statsObject['SPORTSSTATS']['NFL'][theWeek] = None
+				theRelative = week['relative']
+				statsObject['SPORTSSTATS']['DATES'][theRelative] = None
+			# Otherwise, grab things as normal
+			else:
+				theEvents = nfl.parseSchedule(thisYear, week['num'], week['season'])
+
+				# Add events to global stats object
+				theWeek = week['date']
+				statsObject['SPORTSSTATS']['NFL'][theWeek] = theEvents
+
+				# Add relative NFL weeks
+				theRelative = week['relative']
+				statsObject['SPORTSSTATS']['DATES'][theRelative] = week['date']
+
+
 	theStandings = nfl.scrapeStandings()
 	# Add standings to global stats object
 	statsObject['SPORTSSTATS']['NFL']['STANDINGS'] = theStandings
-	# Add relative NFL weeks
-	statsObject['SPORTSSTATS']['DATES']['lastweek'] = nflDates[0]
-	statsObject['SPORTSSTATS']['DATES']['thisweek'] = nflDates[1]
-	statsObject['SPORTSSTATS']['DATES']['nextweek'] = nflDates[2]
 
 	### END NFL SPECIFIC ##################################
 

@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Oct 21, 2014              #
+#        date: Jan 1, 2015               #
 #                                        #
 ##########################################
 
@@ -73,21 +73,39 @@ but if you want to double-check:
 
 RELEASE NOTES:
 
+v0.5.1:
+* Patched handling of NFL schedules during the postseason. 
+  For now Sports Stats will no longer display the next week/round's schedule 
+  during the postseason.
+
+
+v0.5:
+* Added NHL support. Sports Stats now provides data for all four major sports.
+
+
 v0.4:
-This door displays scores, schedules, and standings for the NFL, NBA and MLB.
-NHL support will be added later.
-
-This is a "beta" release of the door. Likely there are bugs.
-Some specific things you could look for:
-  * Are there mistakes in any of the data (dates, etc)?
-
-If you find any, just email me at the address above.
+* This door displays scores, schedules, and standings for NFL, NBA and MLB.
+  NHL support will be added later.
 
 
 Future plans:
 * Pick favorite teams, which will be highlighted in a different color
 * Display standings by divisions, or only by leagues/conferences.
 * General interface improvements
+
+
+==========================================
+
+BUG REPORTS
+
+Sports Stats can be considered in beta. It provides regular-season data for 
+all four sports, and should be functional for all Synchronet sysops. 
+
+Please expect bugs in the handling of pre- and post-season schedules, 
+especially in the NHL and NFL where I'm gathering data using my own scrapers.
+
+If you find mistakes or bugs, please email me at the address above.
+
 
 
 ==========================================

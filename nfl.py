@@ -120,10 +120,18 @@ def scrape(url=None):
 
 
 
-def parseSchedule(year, week):
+def parseSchedule(year, week, season):
 
-	games_played = nflgame.games(year, week)
-	games_sked = nflgame.update_sched.week_schedule(year, 'REG', week)
+	if season == 'POST':
+		theweek = week - 17
+	else:
+		theweek = week
+
+	games_played = nflgame.games(year, week=theweek, kind=season)
+	print games_played
+
+	games_sked = nflgame.update_sched.week_schedule(year, season, theweek)
+	print games_sked
 
 	events = {
 		"events_date": None, 
@@ -161,7 +169,12 @@ def parseSchedule(year, week):
 		eventId = eventId.replace(' ','-')
 		#print eventsDate
 		#print eventsDateTime
-
+		if season == 'REG':
+			seasonType = 'regular'
+		elif season == 'POST':
+			seasonType = 'post'
+		elif season == 'PRE':
+			seasonType = 'pre'
 
 		eventObj = {
 			"start_date_time": eventsDateTime, 
@@ -173,7 +186,7 @@ def parseSchedule(year, week):
 				"active": True
 			}, 
 			"event_id": eventId, 
-			"season_type": "regular", 
+			"season_type": seasonType, 
 			"home_team": {
 				"first_name": homeCity, 
 				"last_name": homeTeam, 
@@ -255,7 +268,10 @@ def parseSchedule(year, week):
 
 		else:
 			timeParts = s['time'].split( ':' )
-			hour = int(timeParts[0]) + 12
+			if timeParts[0] == '12':
+				hour = 12
+			else:
+				hour = int(timeParts[0]) + 12
 			min = int(timeParts[1])
 			d = datetime.datetime( s['year'], s['month'], s['day'], hour, min )
 			datestamp = d.strftime("%Y-%m-%dT%H:%M:%S")

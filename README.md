@@ -3,17 +3,19 @@
 Sports-Stats
 ============
 
-A door for Synchronet BBSes that displays sports standings and scores from the four biggest American sports: NFL, NBA, NHL, and MLB.
+A door for Synchronet BBSes that displays sports standings and regular-season scores from the four biggest American sports: NFL, NBA, NHL, and MLB.
 
 This door requires Synchronet 3.16 and several of its built-in Javascript libraries, such as frame.js. Sysops are encouraged to connect to my Sports Stats JSON service to obtain the stats data.
 
+Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
-v0.5
+
+v0.5.1
 ---------------
 
-Version 0.5 added support for NHL stats.
+Version 0.5.1 includes a patch for handling NFL schedules during the postseason. For now Sports Stats will no longer display the next week/round's schedule during the postseason.
 
-Sports Stats can be considered in beta. It provides data for all four sports, and should be functional for all Synchronet sysops. If you find mistakes or errors, please contact me.
+(Please expect bugs in the handling of pre- and post-season schedules, especially in the NHL and NFL where I'm gathering data using my own scrapers.)
 
 
 Data sources
@@ -44,6 +46,7 @@ Features I intend to add in the future:
 
 Things I'm thinking about:
 
+* I need a way to find and store the season_status of a given league on a given date. This will allow me to remove superfluous options from the sports' menus depending on the time of year.
 * Erik Berg's service is convenient, but only offers stats for two leagues. But it does have a rate limit of six requests per minute, which sucks. I may not want to rely on it.
 * Given that I'm blending several data sources and my own scrapers, the best option will be for me to stuff all the data into a JSON database service.
 * It would be nice to add league leaders, playoff brackets, etc. But no guarantees. 
