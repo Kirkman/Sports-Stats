@@ -44,6 +44,13 @@ var favorite = 'Spurs';
 // Frame for the whole app
 var frame = new Frame(1, 1, 80, 24, 0);
 
+// user settings
+var u = new Object();
+u.favorites = [];
+u.alias = '';
+u.system = '';
+
+
 
 // Get relative dates from JSON database
 function getDates() {
@@ -96,7 +103,8 @@ function cleanName(team,method) {
 	//		['^' : '',
 			[/^Diamondbacks/i, 'D\'Backs'],
 			[/^Trail Blazers/i, 'T Blazers'],
-			[/^Timberwolves/i, 'T\'wolves']
+			[/^Timberwolves/i, 'T\'wolves'],
+			[/^Blue Jackets/i, 'BlueJackets']
 		];
 	}
 
@@ -209,6 +217,7 @@ function chooseSport() {
 	console.clear();
 	frame.cycle();
 	var mysport = '';
+	var byDivision = true;
 
 	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
 	headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
@@ -314,6 +323,9 @@ function chooseSport() {
 			sports[prevSport]['frame'].draw();
 			sports[currentSport]['frame'].draw();
 		} // end if 
+		else if ( userInput == "P" ) {
+			setPreferences();
+		}
 		else if ( userInput == "Q" ) {
 			cleanUp();
 			exit();
@@ -322,6 +334,16 @@ function chooseSport() {
 	} // end while
 
 	mysport = sports[currentSport]['sport'];
+	
+
+	// Decide if we should display conference standings instead of division
+	if (mysport == 'nhl' || mysport == 'nba') {
+		var d = new Date();
+		var month = d.getMonth();
+		// display NBA/NHL conference standings from March-September. 
+		if (month >= 2 && month <= 10 ) { byDivision = false; }
+	}
+	
 
 	var optionsX = sports[currentSport]['frame'].x;	
 	var optionsY = sports[currentSport]['frame'].y + sports[currentSport]['frame'].height + 1;	
@@ -512,7 +534,8 @@ function chooseSport() {
 	instructFrame.delete();
 	headerFrame.delete();
 	
-	if (myoption == 'standings') { displayStandings(mysport); }
+	debug(byDivision);
+	if (myoption == 'standings') { displayStandings(mysport,byDivision); }
 	else if (myoption == 'events') { displayScores(mysport,mydate); }
 }
 
@@ -579,6 +602,19 @@ function getStats(sport,method,date) {
 
 }
 
+
+// ##################################
+// ### 
+// ### SET PREFERENCES
+// ### 
+// ##################################
+
+function setPreferences() {
+	console.clear();
+	frame.cycle();
+
+	chooseSport();
+}
 
 
 
@@ -685,17 +721,33 @@ function displayScores(sport,date) {
 
 					var home = (' ' + cleanName(event.home_team.last_name,'events')).ljust(teamLen);
 					var away = (' ' + cleanName(event.away_team.last_name,'events')).ljust(teamLen);
+ 					var homeScore = event['home_points_scored'];
+ 					var awayScore = event['away_points_scored'];
+
+					// ==============================================
+					// OUTDATED METHODS OF OBTAINING THE FINAL SCORES
+
 					// use Array.reduce to sum up each period's scores to get final score
-//		  				var homeScore = event['home_period_scores'].reduce(function(a, b) { return a + b; });
-// 						var awayScore = event['away_period_scores'].reduce(function(a, b) { return a + b; });
-					if (sport == 'mlb') {
-						var homeScore = event['home_batter_totals']['runs'];
-						var awayScore = event['away_batter_totals']['runs'];
-					}
-					else {
-						var homeScore = event['home_totals']['points'];
-						var awayScore = event['away_totals']['points'];
-					}
+// 					var homeScore = event['home_period_scores'].reduce(function(a, b) { return a + b; });
+// 					var awayScore = event['away_period_scores'].reduce(function(a, b) { return a + b; });
+
+					// This method is obsolete since I am no longer scraping
+					// each game's box score to get the *_batter_totals
+					// or *_totals arrays.
+					// Instead, I'm only grabbing each day's events json, 
+					// which saves about 16 API calls.
+// 					if (sport == 'mlb') {
+// 						var homeScore = event['home_batter_totals']['runs'];
+// 						var awayScore = event['away_batter_totals']['runs'];
+// 					}
+// 					else {
+// 						var homeScore = event['home_totals']['points'];
+// 						var awayScore = event['away_totals']['points'];
+// 					}
+
+					// END: OUTDATED METHODS OF OBTAINING THE FINAL SCORES
+					// ==============================================
+
 					var homeColor = lowWhite;
 					var awayColor = lowWhite;
 					if ( homeScore > awayScore ) { homeColor = highWhite; }
@@ -739,7 +791,7 @@ function displayScores(sport,date) {
 						var awayPeriodScore = event['away_period_scores'][j];
 						var homePeriodScore = event['home_period_scores'][j];
 						// NEED TO ADD
-						// {ut a subroutine here (for MLB) to check 
+						// Put a subroutine here (for MLB) to check 
 						// if an inning had a double-digit score. If so,
 						// increase the size of the cell on all lines.
 
@@ -908,7 +960,6 @@ function displayScores(sport,date) {
 
 function displayStandings(sport,byDivision) {
 	sport = sport || 'mlb';
-	byDivision = byDivision || true;
 
 	console.clear();
 	frame.cycle();
@@ -953,7 +1004,13 @@ function displayStandings(sport,byDivision) {
 				} // divisions for loop
 			} // if byDivision
 			else {
-				thisConfStandings = sortByKey(thisConfStandings, 'win_percentage');
+				// NHL conf standings should be sorted by points
+				if (sport == 'nhl') {
+					thisConfStandings = sortByKey(thisConfStandings, 'points');
+				}
+				else {
+					thisConfStandings = sortByKey(thisConfStandings, 'win_percentage');
+				}
 				thisFrame.putmsg(highBlack + ''.ljust('39',charHorizSingle) );
 				thisFrame.crlf();
 				for (var j=0; j<thisConfStandings.length; j++) {
@@ -997,6 +1054,93 @@ function displayStandings(sport,byDivision) {
 
 
 
+
+function createUser() {
+	var userObj = {
+		'alias' : user.alias,
+		'favorites' : [],
+		'system' : system.name
+	};
+	return userObj;
+}
+
+function initUser() {
+	var f = new File(js.exec_dir + "server.ini");
+	f.open("r");
+	serverIni = f.iniGetObject();
+	f.close();
+	try {
+		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
+		var userList = jsonClient.read("SPORTSSTATS", "SPORTSSTATS.PLAYERS", 1);
+		// No users yet. We need to create the users database
+		if (userList === undefined) {
+			userList = [];
+			u = createUser();
+			userList.push(u);
+			jsonClient.write("SPORTSSTATS", "SPORTSSTATS.PLAYERS", userList, 2);
+		}
+		// There have already been users.
+		else {
+			var userInList = false;
+			// Iterate over list and see if this user has entry in high score list.
+			for (var i=0; i<userList.length; i++) {
+				if (userList[i].name == user.alias && userList[i].system == system.name) {
+					u.name = userList[i].name;
+					u.favorites = userList[i].favorites;
+					u.system = userList[i].system;
+					userInList = true;
+				}
+			}
+			// User was NOT in the list, so create them.
+			if (!userInList) { 
+				u = createUser();
+				userList.push(u);
+				jsonClient.write("SPORTSSTATS", "SPORTSSTATS.PLAYERS", userList, 2);
+			}
+		}
+	} catch(err) {
+		console.write(LOG_ERR, "JSON client error: " + err);
+		return false;
+	}
+	jsonClient.disconnect();
+}
+
+
+
+
+
+// =============================================================================
+//
+// REVISE THE FUNCTION BELOW TO MAKE IT WRITE FAVORITE TEAMS, RATHER THAN SCORES
+//
+// =============================================================================
+
+function updateScoreList(finalScore) {
+	// If the user's new score is greater than all-time score,
+	// overwrite his entry in the scorelist.
+	var f = new File(js.exec_dir + "server.ini");
+	f.open("r");
+	serverIni = f.iniGetObject();
+	f.close();
+	try {
+		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
+		var userList = jsonClient.read("SPORTSSTATS", "SPORTSSTATS.PLAYERS", 1);
+		if (userList !== undefined) {
+			// Look for user's entry in the list.
+			for (var i=0; i<userList.length; i++) {
+				if (userList[i].name == user.alias) {
+					userList[i].highscore = finalScore;
+				}
+			}
+		}
+		jsonClient.write("SPORTSSTATS", "SPORTSSTATS.PLAYERS", userList, 2);
+	} catch(err) {
+		console.write(LOG_ERR, "JSON client error: " + err);
+		return false;
+	}
+	jsonClient.disconnect();
+}
+
 var cleanUp = function() {
 	frame.close();
 	console.clear();
@@ -1005,9 +1149,18 @@ var cleanUp = function() {
 
 
 
+
+
+
+// If it's a returning user, populate the user variable. If new, add to JSON DB
+initUser();
+//debug(JSON.stringify(u, null, 4));
+
 // This launches the app
 chooseSport();
 
+// When done, remove all the frames
 cleanUp();
 
+// Quit
 exit();

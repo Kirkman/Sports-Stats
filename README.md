@@ -10,12 +10,14 @@ This door requires Synchronet 3.16 and several of its built-in Javascript librar
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
-v0.5.1
+v0.6
 ---------------
 
-Version 0.5.1 includes a patch for handling NFL schedules during the postseason. For now Sports Stats will no longer display the next week/round's schedule during the postseason.
+Version 0.6 makes some back-end changes, and is a mandatory upgrade.
 
-(Please expect bugs in the handling of pre- and post-season schedules, especially in the NHL and NFL where I'm gathering data using my own scrapers.)
+* cache.py now makes fewer API calls to xmlstats because of [a change xmlstats](https://erikberg.com/api/issues/158) made to their events JSON. This is a good thing, but requires changes in the sportsstats.js client. YOU MUST UPGRADE, or your Sports Stats installation will not work.
+
+* I added code to display NHL and NBA standings by conference instead of division once the season reaches March and the playoffs approach.
 
 
 Data sources
