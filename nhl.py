@@ -1,11 +1,9 @@
 #!/usr/bin/python
 
 
-# Josh's NFL tools
-# Uses the nflgame library to grab game results and schedules,
-# plus my own beautifulsoup scraper to get standings.
-# Hopefully someday xmlstats service will provide NFL data.
-# If that happens, I will remove these separate NFL pieces.
+# My own beautifulsoup scraper to grab game results, schedules, and standings.
+# Hopefully someday xmlstats service will provide NHL data.
+# If that happens, I will remove these separate NHL pieces.
 
 from bs4 import BeautifulSoup
 from cache import *
@@ -141,15 +139,24 @@ def scrapeGames(scrapeDate):
 		games = soup.findAll('div', {'class':'sbGame'})
 
 		for game in games:
+
+			# The following code looks for special games like
+			# the All-Star Game, to quit early before trying to process.
+			gameName = game.find('div', {'class': 'gcLinks'})
+			if gameName:
+				gameName = gameName.text
+				if 'all-star game' in gameName.lower():
+					return False
+
 			# iterate over table
 			gameTable = game.find('table')
-
 
 			topRow = gameTable.select('tr:nth-of-type(1)')
 			awayRow = gameTable.select('tr:nth-of-type(2)')
 			homeRow = gameTable.select('tr:nth-of-type(3)')
 
 			status = topRow[0].select('th:nth-of-type(1)')[0].text
+
 			# Is this a game complete?
 			if 'final' in status.lower():
 				eventStatus = 'completed'
@@ -167,6 +174,9 @@ def scrapeGames(scrapeDate):
 					theTime = status
 
 
+			# The following two lines of code will produce an error
+			# if it's a special game like the All-Star Game, because
+			# neither team has any team page, and therefore no hyperlinks.
 			home = homeRow[0].select('td:nth-of-type(1) a')[0]['rel'][0]
 			away = awayRow[0].select('td:nth-of-type(1) a')[0]['rel'][0]
 
@@ -298,10 +308,12 @@ def scrapeGames(scrapeDate):
 
 				eventObj.update({
 					"away_period_scores": awayScoresByPeriod, 
+					"away_points_scored": awayScore, 
 					"away_totals": {
 						"points": awayScore,
 					}, 
 					"home_period_scores": homeScoresByPeriod, 
+					"home_points_scored": homeScore, 
 					"event_status": "completed", 
 					"home_totals": {
 						"points": homeScore,
@@ -340,7 +352,10 @@ def scrapeGames(scrapeDate):
 
 def scrapeStandings():
 
-	html = scrape('http://www.nhl.com/ice/standings.htm')
+	# Early in March, the standings change from division-style to wildcard-style.
+	# This includes an extra first column, which is the team's division abbreviation.
+	# So, specify that we want division-style all the time to avoid problems.
+	html = scrape('http://www.nhl.com/ice/standings.htm?type=DIV')
 	if html:
 		soup = BeautifulSoup(html)
 		tables = soup.findAll('table', {'class':'standings'})

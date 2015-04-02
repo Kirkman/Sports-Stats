@@ -344,6 +344,50 @@ function chooseSport() {
 		if (month >= 2 && month <= 10 ) { byDivision = false; }
 	}
 	
+	// GRAB DATES
+	// I moved this higher up, because if there are no dates in the NFL,
+	// then there is no point to displaying a "scores/schedule" option.
+	// To remove that option, I first have to check the dates.
+	// As noted below, all of this date stuff is really messy. I need to work
+	// out a more robust system for figuring out when it's the offseason in
+	// the NFL, etc.
+
+	var datesFromJson = getDates();
+
+	// NFL schedules are weekly, not daily
+	if (mysport == 'nfl') {
+		var dates = [
+			{ 'date': datesFromJson['lastweek'], 'name': 'Last week' },
+			{ 'date': datesFromJson['thisweek'], 'name': 'This week' },
+			{ 'date': datesFromJson['nextweek'], 'name': 'Next week' }
+		];
+
+	}
+	// All other sports use daily schedules
+	else {
+		var dates = [
+			{ 'date': datesFromJson['yesterday'], 'name': 'Yesterday' },
+			{ 'date': datesFromJson['today'], 'name': 'Today' },
+			{ 'date': datesFromJson['tomorrow'], 'name': 'Tomorrow' }
+		];
+	}
+
+	// TEMPORARY FIX
+	// I need to do more work about how to handle postseason and offseason.
+	// For now in the NFL, I am storing "nextweek" as a null value
+	// because nflgame won't return a schedule for next week.
+	// In the future I want to store a value for each league indicating
+	// whether a particular date/week is pre/reg/post/off-season. Then I
+	// could customize these menu options depending on the season's phase.
+
+	// If any of the dates are null, then let's remove them
+	for(var i = dates.length -1; i >= 0; i--) {
+		if ( dates[i]['date'] == null ) {
+			dates.splice(i, 1);
+		}
+	}
+	// END TEMPORARY FIX
+
 
 	var optionsX = sports[currentSport]['frame'].x;	
 	var optionsY = sports[currentSport]['frame'].y + sports[currentSport]['frame'].height + 1;	
@@ -351,10 +395,19 @@ function chooseSport() {
 
 	var optionsFrame = new Frame(optionsX, optionsY, optionsW, 2, 0, frame);
 
-	var options = [
-		{ 'option': 'events', 'name': 'Scores/Schedule' },
-		{ 'option': 'standings', 'name': 'Standings' }
-	];
+	// Only show Scores/Schedules option if there are actually dates in the
+	// JSON datastore.
+	if (dates.length > 0) {
+		var options = [
+			{ 'option': 'events', 'name': 'Scores/Schedule' },
+			{ 'option': 'standings', 'name': 'Standings' }
+		];
+	}
+	else {
+		var options = [
+			{ 'option': 'standings', 'name': 'Standings' }
+		];
+	}
 
 	optionsFrame.gotoxy(0,1);
 	for (var i=0; i<options.length; i++) {
@@ -424,42 +477,6 @@ function chooseSport() {
 		var datesY = optionsFrame.y + optionsFrame.height + 1;
 		var datesW = optionsFrame.width;
 		var datesFrame = new Frame( datesX, datesY, datesW, 3, 0, frame );
-
-		var datesFromJson = getDates();
-
-		// NFL schedules are weekly, not daily
-		if (mysport == 'nfl') {
-			var dates = [
-				{ 'date': datesFromJson['lastweek'], 'name': 'Last week' },
-				{ 'date': datesFromJson['thisweek'], 'name': 'This week' },
-				{ 'date': datesFromJson['nextweek'], 'name': 'Next week' }
-			];
-
-		}
-		// All other sports use daily schedules
-		else {
-			var dates = [
-				{ 'date': datesFromJson['yesterday'], 'name': 'Yesterday' },
-				{ 'date': datesFromJson['today'], 'name': 'Today' },
-				{ 'date': datesFromJson['tomorrow'], 'name': 'Tomorrow' }
-			];
-		}
-
-		// TEMPORARY FIX
-		// I need to do more work about how to handle postseason and offseason.
-		// For now in the NFL, I am storing "nextweek" as a null value
-		// because nflgame won't return a schedule for next week.
-		// In the future I want to store a value for each league indicating
-		// whether a particular date/week is pre/reg/post/off-season. Then I
-		// could customize these menu options depending on the season's phase.
-
-		// If any of the dates are null, then let's remove them
-		for(var i = dates.length -1; i >= 0; i--) {
-			if ( dates[i]['date'] == null ) {
-				dates.splice(i, 1);
-			}
-		}
-		// END TEMPORARY FIX
 
 		datesFrame.gotoxy(0,1);
 		for (var i=0; i<dates.length; i++) {
@@ -534,7 +551,6 @@ function chooseSport() {
 	instructFrame.delete();
 	headerFrame.delete();
 	
-	debug(byDivision);
 	if (myoption == 'standings') { displayStandings(mysport,byDivision); }
 	else if (myoption == 'events') { displayScores(mysport,mydate); }
 }
@@ -684,7 +700,7 @@ function displayScores(sport,date) {
 
 				var event = events[i];
 				// display box score
-				if ( event.event_status == "completed" && typeof event['away_period_scores'] !== 'undefined' ) {
+				if ( event.event_status == "completed" && typeof event['away_period_scores'] !== 'undefined' && event['away_period_scores'].length > 0) {
 					// number of periods
 					var len = event['away_period_scores'].length;
 					// default padding between columns

@@ -233,6 +233,7 @@ def parseSchedule(year, week, season):
 
 			eventObj.update({
 				"away_period_scores": awayScoresByPeriod, 
+				"away_points_scored": awayScore, 
 				"away_totals": {
 					"points": awayScore,
 					"first_downs": g.stats_away.first_downs,
@@ -248,6 +249,7 @@ def parseSchedule(year, week, season):
 					"pos_time": None
 				}, 
 				"home_period_scores": homeScoresByPeriod, 
+				"home_points_scored": homeScore, 
 				"event_status": "completed", 
 				"home_totals": {
 					"points": homeScore,

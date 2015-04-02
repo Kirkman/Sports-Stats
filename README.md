@@ -10,6 +10,13 @@ This door requires Synchronet 3.16 and several of its built-in Javascript librar
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
+v0.6.1
+---------------
+
+* Updated the NFL and NHL scrapers to make them compatible with the xmlstats changes described below.
+
+* Fixed sportsstats.js to avoid crashes related to NFL offseason, and fixed display of preseason MLB games related to the xmlstats changes described below.
+
 v0.6
 ---------------
 
