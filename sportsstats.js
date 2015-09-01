@@ -262,8 +262,8 @@ function chooseSport() {
 		},
 		{ 
 			'sport' : 'nfl',
-			'selected' : 'graphics/football.ans',
-			'unselected' : 'graphics/football-gray.ans',
+			'selected' : 'graphics/football.bin',
+			'unselected' : 'graphics/football-gray.bin',
 			'width' : 27,
 			'height' : 10,
 			'frame' : new Frame(52, 6, 27, 10, 0, frame)

@@ -122,8 +122,10 @@ def scrape(url=None):
 
 def parseSchedule(year, week, season):
 
-	if season == 'POST':
-		theweek = week - 17
+	if season == 'REG':
+		theweek = week - 4
+	elif season == 'POST':
+		theweek = week - 21
 	else:
 		theweek = week
 
@@ -367,6 +369,7 @@ def scrapeStandings():
 						streak = row.select('td:nth-of-type(17)')[0].string
 						last_five = row.select('td:nth-of-type(18)')[0].string
 
+						streak_type = None
 						if streak[-1:] == 'L':
 							streak_type = 'loss'
 						elif streak[-1:] == 'W':

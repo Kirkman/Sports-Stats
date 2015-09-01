@@ -21,8 +21,6 @@ import nflgame
 import nflgame.update_sched
 ### END NFL/NHL SPECIFIC ##################################
 
-
-
 # the following code patches a weird JSON float conversion quirk. 
 # from http://stackoverflow.com/a/1447581/566307
 from json import encoder
@@ -35,7 +33,7 @@ exec_dir = '/sbbs/xtrn/sportsstats/'
 access_token = ''
 
 # Replace with your bot name and email/website to contact if there is a problem
-# e.g., 'mybot/0.1 (https://erikberg.com/)'
+# e.g., 'guardian-of-forever/1.0 (telnet://guardian.synchro.net)'
 user_agent = ''
 
 sports = ['mlb','nba']
@@ -57,14 +55,23 @@ thisYear, thisWeek = nflgame.live.current_year_and_week()
 
 # Get the current season phase ('PRE', 'REG', or 'POST')
 thisPhase = nflgame.live._cur_season_phase
-print thisYear,thisWeek,thisPhase
+print 'thisYear: ' + str(thisYear)  + ' | thisWeek: ' + str(thisWeek) + ' | thisPhase: '+ str(thisPhase)
 print today[4:]
 
-# If we're in postseason, change the week number from '1' to '18', etc
+# CALCULATE NEW WEEK NUMBER!
+# e.g. if we're in postseason, change the week number from '1' to '22'
 # I'm doing this so that I can continue to store the games in this style:
 # statsObject['SPORTSSTATS']['DATES']['201418']
-if thisPhase == 'POST':
-	thisWeek = thisWeek + 17
+
+# If we're in postseason, no change necessary
+
+# If we're in regular season, change 1 to 5.
+if thisPhase == 'REG':
+	thisWeek = thisWeek + 4
+
+# If we're in postseason, change the week number from '1' to '22'
+elif thisPhase == 'POST':
+	thisWeek = thisWeek + 21
 
 # Create weeks list
 weeks = []
@@ -73,42 +80,69 @@ weeks = []
 # Also figure out if particular weeks are regular or postseason
 if thisWeek:
 
-	# For Weeks 2-16 everything is normal and easy
-	if thisWeek > 1 and thisWeek < 17:
+	# preseason week 1
+	if thisWeek == 1:
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'PRE', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'PRE', 'relative': 'nextweek'} )
+	# preseason
+	elif thisWeek > 1 and thisWeek < 4:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'PRE', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'PRE', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'PRE', 'relative': 'nextweek'} )
+	# last week of preseason
+	elif thisWeek == 4:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'PRE', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'PRE', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'REG', 'relative': 'nextweek'} )
+	# first week of regular season
+	elif thisWeek == 5:
+		lastWeek = thisWeek - 1
+		nextWeek = thisWeek + 1
+		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'PRE', 'relative': 'lastweek'} )
+		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'REG', 'relative': 'thisweek'} )
+		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'REG', 'relative': 'nextweek'} )
+	# most of regular season (weeks 2-16)
+	elif thisWeek > 5 and thisWeek < 21:
 		lastWeek = thisWeek - 1
 		nextWeek = thisWeek + 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'REG', 'relative': 'thisweek'} )
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'REG', 'relative': 'nextweek'} )
 	# final week of regular season
-	elif thisWeek == 17:
+	elif thisWeek == 21:
 		lastWeek = thisWeek - 1
 		nextWeek = thisWeek + 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'REG', 'relative': 'thisweek'} )
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
 	# first week of playoffs
-	elif thisWeek == 18:
+	elif thisWeek == 22:
 		lastWeek = thisWeek - 1
 		nextWeek = thisWeek + 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'REG', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
 	# in the middle of playoffs
-	elif thisWeek > 18 and thisWeek < 21:
+	elif thisWeek > 22 and thisWeek < 25:
 		lastWeek = thisWeek - 1
 		nextWeek = thisWeek + 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'POST', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
 	# After the Super Bowl
-	elif thisWeek > 21 and today[4:] > 0207:
+	elif thisWeek > 25 and today[4:] > 0207:
 		lastWeek = thisWeek - 1
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'lastweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'thisweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'nextweek'} )
 	# super bowl, no more playoffs
-	elif thisWeek > 21 :
+	elif thisWeek > 25 :
 		lastWeek = thisWeek - 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'POST', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
@@ -132,7 +166,6 @@ def build_url(host, sport, method, id, format, parameters):
 		paramstring = urllib.urlencode(parameters)
 		url = url + '?' + paramstring
 	return url
-
 
 def getStats(sport=None, method=None, date=None, id=None):
 	if sport is None:
@@ -162,7 +195,9 @@ def getStats(sport=None, method=None, date=None, id=None):
 	req.add_header('Accept-encoding', 'gzip')
 
 	# add delay so we don't surpass API rate limit
-	time.sleep(11)
+	#time.sleep(11)
+	# The delay can be shorter since we no longer request every box score
+	time.sleep(2)
 	print url
 
 	try:
@@ -292,15 +327,16 @@ if __name__ == '__main__':
 	for week in weeks:
 		# Only grab skeds if If there's a week number. Otherwise it's the offseason. 
 		if week['num'] is not None:
-			# During the postseason, we cannot grab the next week's schedule.
+			# During postseason, we cannot grab the next week's schedule.
 			# Instead, let's store nulls to indicate this.
-			if thisPhase == 'POST' and week['num'] > thisWeek:
+			if (thisPhase == 'POST' or thisPhase == 'PRE') and week['num'] > thisWeek:
 				theWeek = week['date']
 				statsObject['SPORTSSTATS']['NFL'][theWeek] = None
 				theRelative = week['relative']
 				statsObject['SPORTSSTATS']['DATES'][theRelative] = None
 			# Otherwise, grab things as normal
 			else:
+				print 'GRABBING YEAR: ' +str(thisYear) + ' | WEEK: ' + str(week['num']) + ' | SEASON: ' + str(week['season'])
 				theEvents = nfl.parseSchedule(thisYear, week['num'], week['season'])
 
 				# Add events to global stats object
