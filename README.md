@@ -10,6 +10,11 @@ This door requires Synchronet 3.16 and several of its built-in Javascript librar
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
+v0.6.2
+---------------
+
+* Updated the NFL scraper to support preseason games and schedules.
+
 v0.6.1
 ---------------
 
