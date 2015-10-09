@@ -341,7 +341,7 @@ function chooseSport() {
 		var d = new Date();
 		var month = d.getMonth();
 		// display NBA/NHL conference standings from March-September. 
-		if (month >= 2 && month <= 10 ) { byDivision = false; }
+		if (month >= 2 && month < 9 ) { byDivision = false; }
 	}
 	
 	// GRAB DATES
