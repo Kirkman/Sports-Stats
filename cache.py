@@ -11,6 +11,8 @@ import time
 import os
 import shutil
 from subprocess32 import call
+from configparser import ConfigParser
+from refresh_xmlstats_token import refreshToken
 #######################################################
 ###  NFL/NHL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
@@ -29,17 +31,23 @@ encoder.FLOAT_REPR = lambda o: format(o, '.15g')
 # Replace with path to your Sports Stats directory
 exec_dir = '/sbbs/xtrn/sportsstats/'
 
-# Replace with your access token
-access_token = ''
-
 # Replace with your bot name and email/website to contact if there is a problem
-# e.g., 'guardian-of-forever/1.0 (telnet://guardian.synchro.net)'
-user_agent = ''
+# e.g., 'mybot/0.1 (https://erikberg.com/)'
+user_agent = 'guardian-of-forever/1.0 (telnet://guardian.synchro.net)'
 
 sports = ['mlb','nba']
 
 statsObject = { 'SPORTSSTATS' : {} }
 
+# LOAD OUR XMLSTATS.INI CONFIG VARIABLES
+config = ConfigParser()
+config.read('xmlstats.ini')
+access_token = config.get('DEFAULT', 'token')
+token_expire = config.get('DEFAULT', 'expiration')
+token_expire_datetime = datetime.datetime.strptime(token_expire, '%Y-%m-%d %H:%M:%S')
+today_datetime = datetime.datetime.today()
+
+# Set dates for sports
 yesterday = datetime.date.fromordinal(datetime.date.today().toordinal()-1).strftime('%Y%m%d')
 today = datetime.date.fromordinal(datetime.date.today().toordinal()).strftime('%Y%m%d')
 tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strftime('%Y%m%d')
@@ -264,7 +272,7 @@ def main(mysport,date):
 		## to let users choose a game and see more details.
 		## But for a simple list of box scores, I don't need it anymore.
 		#################################################################
-		
+
 		# iterate over events
 # 		for event in events['event']:
 # 			print "----------------------------------------------"
@@ -309,8 +317,17 @@ def cleanup(dates):
 				shutil.rmtree( root + dir )
 
 
-	
+
 if __name__ == '__main__':
+
+	# If today's date is after the XMLStats token expiration date,
+	# then we need to go to the website and refresh the token
+	if today_datetime > token_expire_datetime:
+		print 'TOKEN IS OUT OF DATE'
+		refreshToken()
+	else:
+		print 'TOKEN IS OKAY'
+
 	statsObject['SPORTSSTATS']['DATES'] = {}
 
 	#######################################################
@@ -405,4 +422,4 @@ if __name__ == '__main__':
 
 	# Tell Synchronet to refresh the JSON service
 	call(['/sbbs/exec/jsexec', '/sbbs/xtrn/sportsstats/json-service-refresh.js'])
-	 
+

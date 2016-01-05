@@ -108,10 +108,16 @@ Date.prototype.yyyymmdd = function() {
 
 // Get time string. Adapted from:
 // http://stackoverflow.com/questions/10211145/getting-current-date-and-time-in-javascript#comment25142367_10211214
+//
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// Using "t" variable instead of "time", which would break the BBS. 
+// Need to re-think modifying the global Date.prototype
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Date.prototype.timeNow = function(){
-	time = ((this.getHours() < 10)?"0":"") + ((this.getHours()>12)?(this.getHours()-12):this.getHours()) +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() + ((this.getHours()>12)?(' p.m.'):' a.m.');
-	if (time == '12:00 a.m.') {
-		time = 'Noon';
+	var t = ((this.getHours() < 10)?"0":"") + ((this.getHours()>12)?(this.getHours()-12):this.getHours()) +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() + ((this.getHours()>12)?(' p.m.'):' a.m.');
+	if (t == '12:00 a.m.') {
+		t = 'Noon';
 	}
-	return time
+	return t
 };

@@ -10,6 +10,13 @@ This door requires Synchronet 3.16 and several of its built-in Javascript librar
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
+v0.6.3
+---------------
+
+* Added a new Python script to automate the renewal of XMLStats API token.
+
+* Small change to avoid messing up Date.prototype.
+
 v0.6.2
 ---------------
 
