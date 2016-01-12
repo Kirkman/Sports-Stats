@@ -5,10 +5,23 @@ Sports-Stats
 
 A door for Synchronet BBSes that displays sports standings and regular-season scores from the four biggest American sports: NFL, NBA, NHL, and MLB.
 
-This door requires Synchronet 3.16 and several of its built-in Javascript libraries, such as frame.js. Sysops are encouraged to connect to my Sports Stats JSON service to obtain the stats data.
+This door requires Synchronet 3.16 and several of its built-in Javascript libraries, such as frame.js. The optional web app requires ecWebv4.
+
+Sysops are encouraged to connect to my Sports Stats JSON service to obtain the stats data.
 
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
+
+v0.7
+---------------
+
+* Developed a Synchronet web v4-compatible Sports Stats .xjs app. Now your users can check standings, scores, and schedules on your BBS website!
+
+* Switched to using js-date-format.js to format dates and times. I'm longer modifying Date.prototype!
+
+* Numerous little bug fixes for the ANSI version, which arose from development of the web version.
+
+* Because of the inclusion of js-date-format.js, as well as the new web app, I've changed the repo to mirror SBBS's folder structure in hopes that it will be clearer where all the pieces go.
 
 v0.6.3
 ---------------

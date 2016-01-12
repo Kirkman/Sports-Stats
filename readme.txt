@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Jan 5, 2016               #
+#        date: Jan 12, 2016              #
 #                                        #
 ##########################################
 
@@ -21,15 +21,30 @@ schedules, and team standings for NFL, NBA, NHL, and MLB.
 My BBS hosts a JSON database service which provides these stats
 for you. The instructions below will explain how to set it up.
 It is also possible to obtain the stats yourself using included
-Python scripts, but I don't recommend it (and I haven't written
-instructions for that yet)
+Python scripts, but I don't recommend it.
 
 
 ==========================================
 
 INSTALLATION
 
-Copy the SPORTS STATS directory into your /xtrn/ directory.
+If you want to install the ANSI door version of Sports Stats:
+
+  * Download a copy of the Sports Stats repository
+
+  * Copy the contents of the downloaded /xtrn/sportsstats/ 
+    directory into your own local /xtrn/sportsstats/ 
+
+If you want to install the Web app version of Sports Stats:
+
+  * Download and install echicken's Synchronet v4 web interface.
+    http://github.com/echicken/synchronet-web-v4
+
+  * Download a copy of the Sports Stats repository
+
+  * Copy the contents of each downloaded folder (/mods/, /web/, etc.)
+    into the equivalent folders in your local SBBS installation.
+  
 
 THEN...
 
@@ -59,7 +74,7 @@ service I'm hosting on my BBS. This service requires the json-client.js
 library found in Synchronet v3.16. If you are running an older
 version of Synchronet, this door will not work for you.
 
-The included 'server.ini' file should already be configured, 
+The included 'server.ini' file is already configured to talk to my server, 
 but if you want to double-check:
 
 1. In the Sports Stats directory (ie /xtrn/sportsstats), open 'server.ini'
@@ -69,9 +84,23 @@ but if you want to double-check:
 3. Recycle services or restart Synchronet for changes to take effect.
 
 
+
+
 ==========================================
 
 RELEASE NOTES:
+
+v0.7:
+* Developed an Synchronet Web v4-compatible Sports Stats .xjs app. Now your
+  users can  check standings, scores, and schedules on your BBS website!
+* Switched to using js-date-format.js to format dates and times. I'm longer 
+  modifying Date.prototype!
+* Numerous little bug fixes for the ANSI version, which arose from development 
+  of the web version.
+* Because of the inclusion of js-date-format.js, as well as the new web app, 
+  I've changed the repo to mirror SBBS's folder structure in hopes that it will 
+  be clearer where all the pieces go.
+
 
 v0.6.3:
 * Added a new Python script to automate the renewal of XMLStats API token.
@@ -147,6 +176,8 @@ Stats used on this door come from several sources:
 
 * I am scraping other NFL information, such as standings and stadiums, 
 from NFL.com. Similarly, I scrape all NHL information from NHL.com.
+
+Within the scripts, I am using the js-date-format library by UziTech.
 
 Thanks also to rswindell, deuce, mcmlxxix, echicken and many others
 for their work on Synchronet's Javascript libaries, and for their

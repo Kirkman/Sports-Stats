@@ -98,26 +98,11 @@ function hasDecimal(num) {
 function isOdd(num) { return num % 2 == 1; }
 
 
-// Change date to yyyymmdd format
-Date.prototype.yyyymmdd = function() {
-	var yyyy = this.getFullYear().toString();
-	var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
-	var dd  = this.getDate().toString();
-	return yyyy + (mm[1]?mm:'0'+mm[0]) + (dd[1]?dd:'0'+dd[0]); // padding
-};
-
-// Get time string. Adapted from:
-// http://stackoverflow.com/questions/10211145/getting-current-date-and-time-in-javascript#comment25142367_10211214
-//
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// Using "t" variable instead of "time", which would break the BBS. 
-// Need to re-think modifying the global Date.prototype
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-Date.prototype.timeNow = function(){
-	var t = ((this.getHours() < 10)?"0":"") + ((this.getHours()>12)?(this.getHours()-12):this.getHours()) +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() + ((this.getHours()>12)?(' p.m.'):' a.m.');
-	if (t == '12:00 a.m.') {
-		t = 'Noon';
-	}
-	return t
-};
+// It's better to construct dates this way than `new Date("2015-01-01")`
+// because the new Date() method leaves things off by 1 day (thanks to
+// time zones)
+function parseDate(input) {
+	var parts = input.split('-');
+	// new Date(year, month [, day [, hours[, minutes[, seconds[, ms]]]]])
+	return new Date(parts[0], parts[1]-1, parts[2]); // Note: months are 0-based
+}

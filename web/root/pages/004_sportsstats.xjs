@@ -1,0 +1,741 @@
+<!--Sports Stats-->
+<?xjs
+	if (typeof argv[0] !== 'boolean' || !argv[0]) exit();
+
+
+	load('sbbsdefs.js');
+	load('js-date-format.js');
+	load('json-client.js');
+
+
+	// Get distinct values from an array of objects
+	// http://stackoverflow.com/questions/15125920/how-to-get-distinct-values-from-an-array-of-objects-in-javascript
+	function uniqueBy(arr, fn) {
+	  var unique = {};
+	  var distinct = [];
+	  arr.forEach(function (x) {
+		var key = fn(x);
+		if (!unique[key]) {
+		  distinct.push(key);
+		  unique[key] = true;
+		}
+	  });
+	  return distinct;
+	}
+
+
+	// Sort an array of objects by a key
+	// Adapted to sort in reverse order
+	// http://stackoverflow.com/a/8837505/566307
+	function sortByKey(array, key) {
+		return array.sort(function(a, b) {
+			var x = a[key]; var y = b[key];
+			return ((x > y) ? -1 : ((x < y) ? 1 : 0));
+		});
+	}
+
+
+	function hasDecimal(num) {
+		return (num % 1 != 0);
+	}
+
+	function isOdd(num) { return num % 2 == 1; }
+
+	// It's better to construct dates this way than `new Date("2015-01-01")`
+	// because the new Date() method leaves things off by 1 day (thanks to
+	// time zones)
+	function parseDate(input) {
+		var parts = input.split('-');
+		// new Date(year, month [, day [, hours[, minutes[, seconds[, ms]]]]])
+		return new Date(parts[0], parts[1]-1, parts[2]); // Note: months are 0-based
+	}
+
+
+	function cleanName(team,method) {
+		method  = method  || 'standings';
+		var replacements = [];
+
+		if (method == 'standings') {
+			replacements = [
+		//		['^' : '',
+				[/^NL$/i, 'National'],
+				[/^AL$/i, 'American'],
+				[/^C$/i, 'Central'],
+				[/^E$/i, 'East'],
+				[/^W$/i, 'West'],
+				[/^SW$/i, 'Southwest'],
+				[/^CEN$/i, 'Central'],
+				[/^ATL$/i, 'Atlantic'],
+				[/^NW$/i, 'Northwest'],
+				[/^SE$/i, 'Southeast'],
+				[/^PAC$/i, 'Pacific']
+			];
+		}
+		else if (method == 'events') {
+			replacements = [
+		//		['^' : '',
+		//		[/^Diamondbacks/i, 'D\'Backs'],
+		//		[/^Trail Blazers/i, 'T Blazers'],
+		//		[/^Timberwolves/i, 'T\'wolves']
+			];
+		}
+
+		var len = replacements.length;
+		for (var i = 0; i < len; i++) {
+			var replacement = replacements[i];
+			team = team.replace(replacement[0], replacement[1]);
+		}
+		return team;
+	}
+
+
+
+
+
+	function makeSportsLinks(sport,method,date) {
+		var dateObj = getData('dates');
+		if (dateObj) {
+			if (date != null) {
+				var str = format(
+					'./?page=%s&sport=%s&method=%s&date=%s',
+					http_request.query.page[0],
+					sport,
+					method,
+					dateObj[date]
+				);
+			}
+			else {
+				var str = format(
+					'./?page=%s&sport=%s&method=%s&date=',
+					http_request.query.page[0],
+					sport,
+					method
+				);
+			}
+			return str;
+		}
+		return false;
+	}
+
+
+	function getData(sport,method,date) {
+		sport  = sport  || 'mlb';
+		method = method || null;
+		date   = date   || null;
+		var db = '';
+		if (sport == 'dates') {
+			db = 'SPORTSSTATS' + "." + sport.toUpperCase();
+		}
+		else if (method == 'standings') {
+			db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + method.toUpperCase();
+		}
+		else {
+			db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + date;
+		}
+
+		try {
+			var jsonClient = new JSONClient("localhost", "10088");
+			var data = jsonClient.read("SPORTSSTATS", db, 1);
+			if (data === undefined) {
+				log("SportsStats > JSON client error: jsonClient returned undefined");
+				return false;
+			}
+			else {
+				return data;
+			}
+		}
+		catch(err) {
+			log("SportsStats > JSON client error: " + err)
+			return false;
+		}
+
+	}
+
+	function renderStats() {
+		// allowed values
+		var sports = ['mlb','nhl','nfl','nba'];
+		var methods = ['events','standings'];
+		var dates = /^(\d\d\d\d\d\d\d?\d?)$/;
+
+		// global variables
+		var sport = null;
+		var method = null;
+		var date = null;
+
+		// Test parameters to see if they exist, and if they are valid.
+		// If we have sport and method parameters, then store them in global variables.
+		if ( typeof http_request.query.sport !== 'undefined' && typeof http_request.query.method !== 'undefined' ) {
+			var s = http_request.query.sport[0].toString().trim().toLowerCase();
+			var m = http_request.query.method[0].toString().trim().toLowerCase();
+			if ( sports.indexOf( s ) > -1 && methods.indexOf( m ) > -1 ) {
+				sport = s;
+				method = m;
+			}
+		}
+		// If we have date parameter, then store it in global variable.
+		if ( typeof http_request.query.date !== 'undefined' ) {
+			var d = parseInt( http_request.query.date[0] );
+			if ( dates.test( d ) ) {
+				date = d;
+			}
+		}
+
+		// Okay, now let's see which display function we need to call.
+		if ( sport != null && method == 'standings' ) {
+			// Second parameter controls whether to display by Division or not.
+			displayStandings( sport, true );
+		}
+		else if ( sport != null && method == 'events' && date != null ) {
+			displayScores( sport, date );
+		}
+
+	}
+
+function outputStandingsHeaders(label,sport) {
+	var theName = label;
+	var theWon  = 'w';
+	var theLost = 'l';
+	var theTied = '';
+	var thePct  = 'pct';
+	var theGB   = 'gb';
+	var thePf   = '';
+	var thePa   = '';
+	var theL10  = 'l10';
+	// NFL does not have GB or L10.
+	if (sport == 'nfl') {
+		theWon  = 'w';
+		theLost = 'l';
+		theTied = 't';
+		theName = label;
+		theGB   = ''
+		thePf   = 'pf';
+		thePa   = 'pa';
+		theL10  = 'str'
+	}
+	else if (sport == 'nhl') {
+		theWon  = 'w';
+		theLost = 'l';
+		theTied = 'ot';
+		thePct  = 'pts';
+		theName = label;
+		theGB   = ''
+		thePf   = 'gf';
+		thePa   = 'ga';
+		theL10  = 'l10';
+	}
+
+	var txt = 
+		'<tr><th>' + theName + 
+		'</th><th>' + theWon + 
+		'</th><th>' + theLost + 
+		'</th><th>' + theTied + 
+		'</th><th>' + thePct + 
+		'</th><th>' + theGB + 
+		'</th><th>' + thePf + 
+		'</th><th>' + thePa + 
+		'</th><th>' + theL10 +
+		'</th></tr>';
+	return txt;
+}
+
+function outputTeam(team,key,sport) {
+	var teamName = cleanName( team.last_name.toString() );
+	// NFL team names are shorter.
+	// NFL doesn't reach triple digit Ws or Ls.
+	// NFL lacks GB or L10, so replace with PF, PA, and L5.
+	if (sport == 'nfl') {
+		var theName = ' ' + teamName;
+		var theWon  = team.won.toString();
+		var theLost = team.lost.toString();
+		var theTied = team.tied.toString();
+		var thePct  = team.win_percentage.toString();
+		var theGB   = '';
+		var thePf   = team.points_for.toString();
+		var thePa   = team.points_against.toString();
+		var theL10  = team.streak.toString();
+	}
+	else if (sport == 'nhl') {
+		var theName = ' ' + teamName;
+		var theWon  = team.won.toString();
+		var theLost = team.lost.toString();
+		var theTied = team.ot.toString();
+		var thePct  = team.points.toString();
+		var theGB   = '';
+		var thePf   = team.goals_for.toString();
+		var thePa   = team.goals_against.toString();
+		var theL10  = team.last_ten.toString();
+	}
+
+	else {
+		var theName = ' ' + teamName;
+		var theWon  = team.won.toString();
+		var theLost = team.lost.toString();
+		var theTied = '';
+		var thePct  = team.win_percentage.toString();
+		var gb = team.games_back;
+		if ( !hasDecimal(gb) ) {
+			gb = team.games_back.toString() + ' ';
+		}
+		else {
+			gb = team.games_back.toString().replace('.5','&frac12;');
+		}
+		var theGB   = gb.toString();
+		var thePf   = '';
+		var thePa   = '';
+		var theL10  = team.last_ten.toString();
+	}
+
+
+	//if ( favorite == teamName ) {
+		// CODE HERE LATER
+	//}
+	var txt = 
+		'<tr><td>' + theName + 
+		'</td><td>' + theWon + 
+		'</td><td>' + theLost + 
+		'</td><td>' + theTied + 
+		'</td><td>' + thePct + 
+		'</td><td>' + theGB + 
+		'</td><td>' + thePf + 
+		'</td><td>' + thePa + 
+		'</td><td>' + theL10 +
+		'</td></tr>';
+	return txt;
+}
+
+
+
+function displayStandings(sport,byDivision) {
+	sport = sport || 'mlb';
+
+	var method = "standings";
+
+	var json = getData(sport, method);
+
+	if (json) {
+		var output = '';
+
+		statDate = json['standings_date'].split('T')[0];
+
+		json = json['standing'];
+
+		var statDateObj = new Date( parseDate(statDate) );
+		var statDateStr = statDateObj.format('MMM D, YYYY');
+
+		var yester = new Date();
+		yester.setDate(yester.getDate() - 1);
+		yester.setTime(yester.getTime()-yester.getHours()*3600*1000-yester.getMinutes()*60*1000);
+		// If these standings are more than a day behind, then we must be in the offseason
+		if (statDateObj < yester) {
+			var offseason = ' (offseason)';
+		}
+		else {
+			var offseason = '';
+		}
+
+ 		output += '<h2>' + sport.toUpperCase() + ' standings <span class="break-before">on ' + statDateStr + offseason + '</span></h2>';
+
+		// usage
+		var conferences = uniqueBy( json, function(x){return x.conference;} );
+
+		for (var i=0; i<conferences.length; i++) {
+			var confName = ' ' + cleanName(conferences[i]).toLowerCase();
+
+			// DO A DIFFERENT CHECK HERE. INSTEAD OF CHANGING FRAMES, CREATE NEW <DIV>
+			//if ( isOdd(i) ) { thisFrame = confFrameR; } 
+			//else { thisFrame = confFrameL; } 
+
+			var thisConfStandings = json.filter( function(x){return x.conference === conferences[i];} );
+
+			// There are circumstances where I won't want to break down the standings
+			// all the way to the division level. So I have added an optional 
+			// byDivision variable, which defaults to True. If you set it to false
+			// teams will be displayed by conference.
+			if (byDivision) {
+				output += '<div class="col-xs-6">';
+				output += '<h2>' + confName + '</h2>';
+				var divisions = uniqueBy( thisConfStandings, function(x){return x.division;} );
+				for (var j=0; j<divisions.length; j++) {
+					var thisDivStandings = thisConfStandings.filter( function(x){return x.division === divisions[j];} );
+					var divName = cleanName( divisions[j] ).toLowerCase();
+					output += '<div class="standings">';
+					output += '<table class="table table-condensed table-striped">';
+					output += outputStandingsHeaders(divName,sport);
+					for (var key in thisDivStandings) {
+						output += outputTeam(thisDivStandings[key],key,sport);
+					} // key in divStandings for loop
+					output += '</table>';
+					output += '</div>';
+				} // divisions for loop
+				output += '</div>';
+
+			} // if byDivision
+			else {
+				// NHL conf standings should be sorted by points
+				if (sport == 'nhl') {
+					thisConfStandings = sortByKey(thisConfStandings, 'points');
+				}
+				else {
+					thisConfStandings = sortByKey(thisConfStandings, 'win_percentage');
+				}
+				thisFrame.putmsg(highBlack + ''.ljust('39',charHorizSingle) );
+				thisFrame.crlf();
+				for (var j=0; j<thisConfStandings.length; j++) {
+					thisFrame.putmsg( outputTeam(thisConfStandings[j],j,sport) );
+					thisFrame.crlf();
+				} // key in divStandings for loop
+			} // else byDivision
+
+
+		} // conferences for loop
+
+
+	} // if json
+	else {
+		output = '<div class="col-xs-12"><h2>There was an error.</h2></div>' 
+	}
+
+	writeln(output);
+
+} // displayStandings
+
+
+
+function displayScores(sport,date) {
+	sport = sport || 'mlb';
+	date = date || new Date().format('mmddYYYY');
+
+	var output = '';
+
+	// Display scores
+	var method = "events";
+	var eventsJson = getData(sport,method,date);
+
+	if ( eventsJson ) {
+		var statDate = eventsJson['events_date'].split('T')[0];
+
+		if (sport == 'nfl') {
+			var statDateStr = 'Week ' + date.toString().charAt(4) + date.toString().charAt(5);
+		}
+		else {
+			var statDateStr = new Date( parseDate(statDate) ).format('MMM D, YYYY');
+		}
+
+
+
+		output += '<div class="col-xs-12">';
+
+		// Check if any events are actually scheduled
+		if (eventsJson.event.length < 1) {
+			output += '<h2>No games scheduled for ' + statDateStr + '</h2>';
+		}
+
+		// Yep, looks like we do have events.
+		else {
+			output += '<h2>' + sport.toUpperCase() + ' games <span class="break-before">on ' + statDateStr + '</span></h2>';
+
+			// Whittle down to just the actual event objects.
+			// At this point, the ANSI/BBS version converts this array into 
+			// chunks of 8 events, which is the most you can display on screen.
+			// No need to do that on the web, where user can scroll easily.
+			var events = eventsJson.event;
+			var eventsLen = events.length;
+
+			for (var i=0; i<eventsLen; i++) {
+				var event = events[i];
+				// display box score
+				if ( event.event_status == "completed" && typeof event['away_period_scores'] !== 'undefined' && event['away_period_scores'].length > 0) {
+					output += '<div class="col-xs-12 col-md-6 box-score">';
+					output += '<table class="table table-condensed">';
+					// number of periods
+					var len = event['away_period_scores'].length;
+					// team names and scores
+					var home = cleanName(event.home_team.last_name,'events');
+					var away = cleanName(event.away_team.last_name,'events');
+					var homeScore = event['home_points_scored'];
+					var awayScore = event['away_points_scored'];
+
+					// INDICATE WHICH TEAM WAS THE WINNER
+					var homeClass = '';
+					var awayClass = '';
+					if ( homeScore > awayScore ) { homeClass = 'winner'; }
+					else { awayClass = 'winner'; }
+
+
+					// BUILD THE BOX SCORE
+					// Previously I used a line-by-line method, which was
+					// inefficient, since I was using a for-loop to iterate over
+					// the periods for each line.
+					// Now I'm using just one loop. The advantage is that this 
+					// will let me set extra padding on cells that need it.
+
+					// start of label line
+					var labelLine = '<tr><th>';
+
+					// start of away team line
+					var awayLine = '<tr class="' + awayClass + '"><td>' + away + '</td>';
+
+					// start of home team line
+					var homeLine = '<tr class="' + homeClass + '"><td>' + home + '</td>';
+
+					// Iterate over the periods
+					for (var j=0; j < len; j++) {
+						var period = j + 1;
+
+						var awayPeriodScore = event['away_period_scores'][j];
+						var homePeriodScore = event['home_period_scores'][j];
+
+						// PERIOD LABEL
+						if (sport == 'mlb') {
+							labelLine += '<th>' + period.toString() + '</th>'; 
+						}
+						else if ( sport == 'nba' || sport == 'nfl' ) {
+							if (period < 5) { 
+								labelLine += '<th>' + period.toString() + '</th>'; 
+							}
+							else { 
+								labelLine += '<th>ot</th>';
+							}
+						}
+						else if ( sport == 'nhl' ) {
+							if (period < 4) { 
+								labelLine += '<th>' + period.toString() + '</th>'; 
+							}
+							else if (period < 5) {  
+								labelLine += '<th>ot</th>';
+							}
+							else {  
+								labelLine += '<th>so</th>';
+							}
+						}
+
+						// AWAY SCORE
+						awayLine += '<td>' + awayPeriodScore.toString() + '</td>';
+
+						// HOME SCORE
+						// In MLB, -1 indicates home team didn't bat in 9th inning
+						if (homePeriodScore < 0) {
+							homeLine +=  '<td>&mdash;</td>'
+						}
+						else {
+							homeLine += '<td>' + homePeriodScore.toString() + '</td>';
+						}
+
+					}
+
+					// BUILD LABEL LINE
+					labelLine += '<th>tot</th>'
+					labelLine += '</tr>';
+					output += labelLine;
+
+					// BUILD AWAY TEAM LINE
+					awayLine += '<td>' + awayScore.toString() + '</td>';
+					awayLine += '</tr>';
+					output += awayLine;
+
+					// BUILD HOME TEAM LINE
+					homeLine += '<td>' + homeScore.toString() + '</td>';
+					homeLine += '</tr>';
+					output += homeLine;
+
+					output += '</table>';
+					output += '</div>';
+
+				} // if game is completed
+				// This is a matchup, not a box score
+				else {
+					output += '<div class="col-xs-12 col-md-6">';
+
+					var away = cleanName(event.away_team.last_name);
+					var home = cleanName(event.home_team.last_name);
+					var eventStartTime = new Date(event.start_date_time).format('h:mm tt');
+					var site = event.site.name;
+
+					output += '<h4>' + away + ' at ' + home + '</h4>';
+					output += '<p>' + eventStartTime + ' ' + site + '</p>';
+					output += '</div>';
+				} // matchup
+			} // for loop iterating over events
+
+		} // else (are events)
+
+		output += '</div>';
+	} // if eventsJson
+	else {
+		output = '<div class="col-xs-12"><h2>There was an error.</h2></div>';
+	}
+
+	writeln(output);
+
+} // displayScores()
+
+
+	
+
+
+
+?>
+
+<link href="./css/sport-font/sport-font.css" rel="stylesheet">
+<style>
+@media screen and (min-width: 768px) {
+	.jumbotron h1 {
+		margin-top: -12px;
+		font-size: 64px;
+		line-height: 64px;
+		margin-bottom: 16px;
+	}
+	.jumbotron i.fa {
+		display: block;
+		font-size: 64px;
+		margin-bottom: 16px;
+	}
+
+}
+@media screen and (max-width: 767px) {
+	.jumbotron {
+		padding: 8px 16px 16px 16px;
+	}
+
+	/* hide the sidebar widget */
+	button[title='Toggle sidebar'] {
+		display: none;
+	}
+
+	.jumbotron h1 {
+		margin-top: 0px;
+	}
+
+	.jumbotron p {
+		font-size: 16px;
+	}
+
+	.jumbotron i.fa {
+		display: block;
+		font-size: 36px;
+		margin-bottom: 12px;
+	}
+	.jumbotron .col-xs-6:nth-child(1),
+	.jumbotron .col-xs-6:nth-child(2) {
+		margin-bottom: 16px;
+	}
+	.mobile-hide {
+		display: none;
+	}
+
+}
+
+.standings table tr td:empty, .standings table tr th:empty {
+	padding: 0px;
+	min-width: 0px;
+}
+
+.standings table tr td, .standings table tr th,
+.box-score table tr td, .box-score table tr th {
+	text-align: right;
+	min-width: 24px;
+}
+
+.standings table tr td:first-child, .standings table tr th:first-child,
+.box-score table tr td:first-child, .box-score table tr th:first-child {
+	text-align: left;
+	min-width: 60px;
+}
+
+
+.box-score table tr th {
+	border-top: none;
+	padding-top: 0px;
+}
+.box-score table tr td {
+	color: #666;
+}
+
+.box-score table tr.winner td {
+	color: black;
+	font-weight: bold;
+}
+
+
+</style>
+
+<div class="jumbotron">
+	<h1>Sports Stats</h1>
+	<p class="mobile-hide">Scores, schedules and standings for four major sports.</p>
+	<p>By <a href="http://www.breakintochat.com/blog">Kirkman</a></p>
+	<div class="row">
+		<div class="col-xs-6 col-md-3">
+			<i class="fa fa-icon-nba icon-nba"></i>
+			<div class="btn-group">
+				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Basketball <span class="caret"></span>
+				</button>
+				<ul class="dropdown-menu">
+					<li><a href="<?xjs writeln( makeSportsLinks('nba','events','yesterday') ); ?>">Yesterday's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nba','events','today') ); ?>">Today's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nba','events','tomorrow') ); ?>">Tomorrow's games</a></li>
+					<li role="separator" class="divider"></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nba','standings',null) ); ?>">Standings</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="col-xs-6 col-md-3">
+			<i class="fa fa-icon-mlb icon-mlb"></i>
+			<div class="btn-group">
+				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Baseball <span class="caret"></span>
+				</button>
+				<ul class="dropdown-menu">
+					<li><a href="<?xjs writeln( makeSportsLinks('mlb','events','yesterday') ); ?>">Yesterday's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('mlb','events','today') ); ?>">Today's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('mlb','events','tomorrow') ); ?>">Tomorrow's games</a></li>
+					<li role="separator" class="divider"></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('mlb','standings',null) ); ?>">Standings</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="col-xs-6 col-md-3">
+			<i class="fa fa-icon-nhl icon-nhl"></i>
+			<div class="btn-group">
+				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Hockey <span class="caret"></span>
+				</button>
+				<ul class="dropdown-menu">
+					<li><a href="<?xjs writeln( makeSportsLinks('nhl','events','yesterday') ); ?>">Yesterday's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nhl','events','today') ); ?>">Today's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nhl','events','tomorrow') ); ?>">Tomorrow's games</a></li>
+					<li role="separator" class="divider"></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nhl','standings',null) ); ?>">Standings</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="col-xs-6 col-md-3">
+			<i class="fa fa-icon-nfl icon-nfl"></i>
+			<div class="btn-group">
+				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Football <span class="caret"></span>
+				</button>
+				<ul class="dropdown-menu">
+					<li><a href="<?xjs writeln( makeSportsLinks('nfl','events','lastweek') ); ?>">Last week's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nfl','events','thisweek') ); ?>">This week's games</a></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nfl','events','nextweek') ); ?>">Next week's games</a></li>
+					<li role="separator" class="divider"></li>
+					<li><a href="<?xjs writeln( makeSportsLinks('nfl','standings',null) ); ?>">Standings</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+		<?xjs renderStats() ?>
+
+
+
+
+
+<nav>
+	<ul class="pager">
+		<?xjs //writeln(pager.previous); writeln(pager.next); ?>
+	</ul>
+</nav>
