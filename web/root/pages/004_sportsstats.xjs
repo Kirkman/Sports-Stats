@@ -134,7 +134,7 @@
 		}
 
 		try {
-			var jsonClient = new JSONClient("localhost", "10088");
+			var jsonClient = new JSONClient("guardian.synchro.net", "10088");
 			var data = jsonClient.read("SPORTSSTATS", db, 1);
 			if (data === undefined) {
 				log("SportsStats > JSON client error: jsonClient returned undefined");
