@@ -87,7 +87,6 @@ weeks = []
 # Figure out the week numbers for last week, this week, and next week
 # Also figure out if particular weeks are regular or postseason
 if thisWeek:
-
 	# preseason week 1
 	if thisWeek == 1:
 		nextWeek = thisWeek + 1
@@ -150,11 +149,15 @@ if thisWeek:
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'thisweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'nextweek'} )
 	# super bowl, no more playoffs
-	elif thisWeek > 25 :
+	elif thisWeek == 25 :
 		lastWeek = thisWeek - 1
 		weeks.append( { 'num': lastWeek, 'date': str(thisYear) + str(lastWeek).zfill(2), 'season': 'POST', 'relative': 'lastweek'} )
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'nextweek'} )
+	else:
+		print "DIDN'T WORK"
+		print thisWeek
+		
 	print weeks
 
 ### END NFL SPECIFIC ##################################

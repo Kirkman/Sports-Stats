@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Jan 12, 2016              #
+#        date: Mar 8, 2016               #
 #                                        #
 ##########################################
 
@@ -90,11 +90,15 @@ but if you want to double-check:
 
 RELEASE NOTES:
 
+v0.7.1:
+* Overhauled NHL scraper to grab data from NHL.com's new JSON API
+
+
 v0.7:
 * Developed an Synchronet Web v4-compatible Sports Stats .xjs app. Now your
   users can  check standings, scores, and schedules on your BBS website!
-* Switched to using js-date-format.js to format dates and times. I'm longer 
-  modifying Date.prototype!
+* Switched to using the js-date-format.js library to format dates and times. 
+  I'm no longer modifying Date.prototype!
 * Numerous little bug fixes for the ANSI version, which arose from development 
   of the web version.
 * Because of the inclusion of js-date-format.js, as well as the new web app, 

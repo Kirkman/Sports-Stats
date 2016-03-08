@@ -114,7 +114,8 @@ def scrape(url=None):
 
 
 def scrapeGames(scrapeDate):
-	from bs4 import BeautifulSoup
+	import json
+	import arrow
 	from datetime import datetime
 
 	# turn date into datetime object
@@ -129,220 +130,142 @@ def scrapeGames(scrapeDate):
 	}
 
 	# build url date piece
-	urlDate = scrapeDateObj.strftime('%m/%d/%Y')
+	urlDate = scrapeDateObj.strftime('%Y-%m-%d')
 
-	url = 'http://www.nhl.com/ice/scores.htm?date=' + urlDate
+	url = 'https://statsapi.web.nhl.com/api/v1/schedule?startDate=' + urlDate + '&endDate=' + urlDate + '&expand=schedule.teams,schedule.linescore,schedule.decisions,schedule.scoringplays'
 
-	html = scrape(url)
-	if html:
-		soup = BeautifulSoup(html)
-		games = soup.findAll('div', {'class':'sbGame'})
+	jsonResponse = scrape(url)
+	if jsonResponse:
+		data = json.loads( jsonResponse )
 
-		for game in games:
+		gameDates = data['dates']
+		for gameDate in gameDates:
+			if gameDate['date'] == urlDate:
+				games = gameDate['games']
 
-			# The following code looks for special games like
-			# the All-Star Game, to quit early before trying to process.
-			gameName = game.find('div', {'class': 'gcLinks'})
-			if gameName:
-				gameName = gameName.text
-				if 'all-star game' in gameName.lower():
-					return False
+				for game in games:
+					status = game['status']['detailedState']
 
-			# iterate over table
-			gameTable = game.find('table')
-
-			topRow = gameTable.select('tr:nth-of-type(1)')
-			awayRow = gameTable.select('tr:nth-of-type(2)')
-			homeRow = gameTable.select('tr:nth-of-type(3)')
-
-			status = topRow[0].select('th:nth-of-type(1)')[0].text
-
-			# Is this a game complete?
-			if 'final' in status.lower():
-				eventStatus = 'completed'
-				theTime = None
-				#print 'COMPLETED'
-			# This game is underway, or a preview
-			else:
-				# Check if game is underway
-				if any(x in status for x in ['1st','2nd','3rd','ot','so']):
-					eventStatus = 'scheduled'
-					theTime = None
-				# Otherwise, game is preview
-				else:
-					eventStatus = 'scheduled'
-					theTime = status
-
-
-			# The following two lines of code will produce an error
-			# if it's a special game like the All-Star Game, because
-			# neither team has any team page, and therefore no hyperlinks.
-			home = homeRow[0].select('td:nth-of-type(1) a')[0]['rel'][0]
-			away = awayRow[0].select('td:nth-of-type(1) a')[0]['rel'][0]
-
-			homeCity = getTeamCity( home,nhlTeamNames )
-			awayCity = getTeamCity( away,nhlTeamNames )
-
-			homeTeam = getTeamName( home,nhlTeamNames )
-			awayTeam = getTeamName( away,nhlTeamNames )
-
-			homeFull = getTeamFull( home,nhlTeamNames )
-			awayFull = getTeamFull( away,nhlTeamNames )
-
-			# this is a stop-gap, since teams sometimes play at neutral sites.
-			# I will have to scrape the game sites from NFL.com at some point.
-			stadium = getTeamStadium( home,nhlTeamNames )
-
-			# An issue here is that once games get underway, I have no way
-			# of finding out what time they started. The start time gets replaced
-			# by the time remaining. 
-			# One possible solution would be to scrape the HTML game summary,
-			# which lists the start time. I would have to get the box score ID
-			# then create a url like this: 
-			# http://www.nhl.com/scores/htmlreports/20142015/GS020091.HTM
-			# The stadium and start time is located in table#GameInfo, 
-			# in the seventh <tr>. The <td> has no class or id. 
-
-			theDate = scrapeDateObj.strftime('%Y-%m-%d')
-			if theTime and (theTime.lower() != 'ppd'):
-				theTime = theTime.replace('ET','EST')
-				print theTime
-				timePieces = theTime.split(' ')
-				timeNumbers = timePieces[0].split(':')
-				theTime = timeNumbers[0].zfill(2) + ':' + timeNumbers[1].zfill(2) + ' PM'
-
-				theTime = datetime.strptime(theTime, '%I:%M %p')
-				theTime = theTime.strftime('%H:%M:%S')
-			else:
-				theTime = '00:00:00'
-
-			startDateTime = theDate + 'T' + theTime + '-04:00'
-
-			eventId = scrapeDate + '-' + awayCity.lower().replace('.','') + '-' + awayTeam.lower()
-			eventId = eventId + '-at-' + homeCity.lower().replace('.','') + '-' + homeTeam.lower()
-			eventId = eventId.replace(' ','-')
-			#print startDateTime
-			#print eventId
-
-			eventObj = {
-				"start_date_time": startDateTime, 
-				"away_team": {
-					"first_name": awayCity, 
-					"last_name": awayTeam, 
-					"abbreviation": away, 
-					"full_name": awayFull, 
-					"active": True
-				}, 
-				"event_id": eventId, 
-				"season_type": "regular", 
-				"home_team": {
-					"first_name": homeCity, 
-					"last_name": homeTeam, 
-					"abbreviation": home, 
-					"full_name": homeFull, 
-					"active": True
-				}, 
-				"site": {
-					"name": stadium
-				}, 
-				"sport": "NHL"
-			}
-
-			if eventStatus == 'completed':
-
-				awayCells = awayRow[0].findAll('td')
-				homeCells = homeRow[0].findAll('td')
-
-				# disregard code below. Instead just use BS4
-				# and loop over all periods. Check if there is a class.
-				# If so, then the cell doesn't have goals
-
-				awayScoresByPeriod = []
-				homeScoresByPeriod = []
-
-				for cell in awayCells:
-					# The cells with classes contain team names and totals
-					if cell.has_key('class'):
-						if cell['class'][0].lower() == 'total':
-							awayScore = int(cell.text)
-					# If no class, then this cell has a score.
+					# Is this a game complete?
+					if 'final' in status.lower():
+						eventStatus = 'final'
+						startDateTime = game['gameDate']
+						#print 'COMPLETED'
+					# If this a game preview?
+					elif 'scheduled' in status.lower():
+						eventStatus = 'scheduled'
+						startDateTime = game['gameDate']
+					# Game is underway
 					else:
-						score = cell.text
-						# Is this a shootout with x (x-x) notation?
-						if '(' in score:
-							newScore = score.split('(')[0].strip()
-							# Make sure there's a score before the (x-x) notation
-							# NHL sometimes mistakenly omits it. If omitted,
-							# use first number from (x-x).
-							if newScore == '':
-								score = score.split('(')[1].split('-')[0].strip() 
-							else:
-								score = newScore
-						score = int(score)
-						awayScoresByPeriod.append( score )
+						eventStatus = 'scheduled'
+						startDateTime = game['gameDate']
 
-				for cell in homeCells:
-					# The cells with classes contain team names and totals
-					if cell.has_key('class'):
-						if cell['class'][0].lower() == 'total':
-							homeScore = int(cell.text)
-					# If no class, then this cell has a score.
-					else:
-						score = cell.text
-						# Is this a shootout with x (x-x) notation?
-						if '(' in score:
-							newScore = score.split('(')[0].strip()
-							# Make sure there's a score before the (x-x) notation
-							# NHL sometimes mistakenly omits it. If omitted,
-							# use first number from (x-x).
-							if newScore == '':
-								score = score.split('(')[1].split('-')[0].strip() 
-							else:
-								score = newScore
-						score = int(score)
-						homeScoresByPeriod.append( score )
+					# The city, short team name, and full team name are all 
+					# encoded in the JSON, so I could use those instead.
+					# But for now I'll keep processing using my custom functions.
 
-				print('-'*30)
-				print homeTeam, awayScoresByPeriod, str(homeScore) 
-				print awayTeam, homeScoresByPeriod, str(awayScore) 
+					home = game['teams']['home']['team']['abbreviation']
+					away = game['teams']['away']['team']['abbreviation']
 
-				eventObj.update({
-					"away_period_scores": awayScoresByPeriod, 
-					"away_points_scored": awayScore, 
-					"away_totals": {
-						"points": awayScore,
-					}, 
-					"home_period_scores": homeScoresByPeriod, 
-					"home_points_scored": homeScore, 
-					"event_status": "completed", 
-					"home_totals": {
-						"points": homeScore,
+					homeCity = getTeamCity( home,nhlTeamNames )
+					awayCity = getTeamCity( away,nhlTeamNames )
+
+					homeTeam = getTeamName( home,nhlTeamNames )
+					awayTeam = getTeamName( away,nhlTeamNames )
+
+					homeFull = getTeamFull( home,nhlTeamNames )
+					awayFull = getTeamFull( away,nhlTeamNames )
+
+					# OLD METHOD: Get stadium name of home team
+					#stadium = getTeamStadium( home,nhlTeamNames )
+					# NEW METHOD: Take venue information directly from JSON.
+					# More accurate, and stays correct even at neutral sites.
+					stadium = game['venue']['name']
+
+					# Get timezone offset
+					startDateTime = arrow.get( startDateTime ).to('US/Central').isoformat()
+
+					eventId = scrapeDate + '-' + awayCity.lower().replace('.','') + '-' + awayTeam.lower()
+					eventId = eventId + '-at-' + homeCity.lower().replace('.','') + '-' + homeTeam.lower()
+					eventId = eventId.replace(' ','-')
+					#print startDateTime
+					#print eventId
+
+					eventObj = {
+						"start_date_time": startDateTime, 
+						"away_team": {
+							"first_name": awayCity, 
+							"last_name": awayTeam, 
+							"abbreviation": away, 
+							"full_name": awayFull, 
+							"active": True
+						}, 
+						"event_id": eventId, 
+						"season_type": "regular", 
+						"home_team": {
+							"first_name": homeCity, 
+							"last_name": homeTeam, 
+							"abbreviation": home, 
+							"full_name": homeFull, 
+							"active": True
+						}, 
+						"site": {
+							"name": stadium
+						}, 
+						"sport": "NHL"
 					}
-				})
+					print eventObj
 
-			"""
-			else:
-				timeParts = s['time'].split( ':' )
-				hour = int(timeParts[0]) + 12
-				min = int(timeParts[1])
-				d = datetime.datetime( s['year'], s['month'], s['day'], hour, min )
-				datestamp = d.strftime("%Y-%m-%dT%H:%M:%S")
-				#print datestamp
-				#print awayTeam + ' at ' + homeTeam
-				#print s['time'] + ' ' + s['wday']
-			"""
+					if eventStatus == 'final':
 
-			#print s['gamekey']
-			events['event'].append(eventObj)
+						homeScore = game['linescore']['teams']['home']['goals']
+						awayScore = game['linescore']['teams']['away']['goals']
+
+						homeScoresByPeriod = []
+						awayScoresByPeriod = []
+
+						for period in game['linescore']['periods']:
+							homeScoresByPeriod.append( period['home']['goals'] )
+							awayScoresByPeriod.append( period['away']['goals'] )
+
+						###################################################
+						##
+						## NEED TO ADD CODE TO DEAL WITH SHOOTOUTS HERE
+						##
+						###################################################
 
 
-		#print('-'*30)
+						print('-'*30)
+						print homeTeam, awayScoresByPeriod, str(homeScore) 
+						print awayTeam, homeScoresByPeriod, str(awayScore) 
 
-		#print events
-		#date = str(year) + str(week).zfill(2)
-		# save results into separate event file
-		#save_result('nhl','events',date,events)
-		return events
+						eventObj.update({
+							"away_period_scores": awayScoresByPeriod, 
+							"away_points_scored": awayScore, 
+							"away_totals": {
+								"points": awayScore,
+							}, 
+							"home_period_scores": homeScoresByPeriod, 
+							"home_points_scored": homeScore, 
+							"event_status": "completed", 
+							"home_totals": {
+								"points": homeScore,
+							}
+						})
+
+
+
+					#print s['gamekey']
+					events['event'].append(eventObj)
+
+
+				#print('-'*30)
+
+				#print events
+				#date = str(year) + str(week).zfill(2)
+				# save results into separate event file
+				#save_result('nhl','events',date,events)
+				return events
 
 
 
@@ -351,15 +274,17 @@ def scrapeGames(scrapeDate):
 
 
 def scrapeStandings():
+	import json
 
-	# Early in March, the standings change from division-style to wildcard-style.
-	# This includes an extra first column, which is the team's division abbreviation.
-	# So, specify that we want division-style all the time to avoid problems.
-	html = scrape('http://www.nhl.com/ice/standings.htm?type=DIV')
-	if html:
-		soup = BeautifulSoup(html)
-		tables = soup.findAll('table', {'class':'standings'})
-	
+	url = 'https://statsapi.web.nhl.com/api/v1/standings?expand=standings.record,standings.team,standings.division,standings.conference'
+
+	jsonResponse = scrape(url)
+
+	if jsonResponse:
+		data = json.loads( jsonResponse )
+
+		records = data['records']
+
 		# build standings date stamp
 		eventsDate = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-06:00')
 
@@ -370,83 +295,60 @@ def scrapeStandings():
 		}
 
 		# loop through each division's table
-		for table in tables:
+		for record in records:
 
 			# keep track of which conference
-			conference = None
+			conference = record['conference']['name']
 			# keep track of which division
-			division = None
-
-			headerRows = table.find('thead').find('tr')
-			headerCells = headerRows.findAll('th')
-			for headerCell in headerCells:
-				if headerCell.has_attr('abbr'):
-					if headerCell['abbr'].lower() == 'div':
-						division = headerCell.text
-						if division.lower() in ['atlantic','metropolitan']:
-							conference = 'Eastern'
-						elif division.lower() in ['central','pacific']:
-							conference = 'Western'
-						print conference + ' | ' + division
+			division =  record['division']['name']
 
 			# loop through every team in the option list
-			for row in table.findAll('tr'):
-				# Team's standings line
-				teamRaw = row.select('td:nth-of-type(2)')
-				if teamRaw:
-					teamAbbr = teamRaw[0].find('a').get('rel')[0]
-					print str(teamAbbr)
-					rank = int(row.select('td:nth-of-type(1)')[0].string)
-					w = int(row.select('td:nth-of-type(4)')[0].string)
-					l = int(row.select('td:nth-of-type(5)')[0].string)
-					ot = int(row.select('td:nth-of-type(6)')[0].string)
-					p = int(row.select('td:nth-of-type(7)')[0].string)
-					gf = int(row.select('td:nth-of-type(9)')[0].string)
-					ga = int(row.select('td:nth-of-type(10)')[0].string)
-					diff = row.select('td:nth-of-type(11)')[0].string
-					if diff.lower() == 'e':
-						diff = 0
-					diff = int(diff)
-					home = row.select('td:nth-of-type(12)')[0].string.split('-')
-					away = row.select('td:nth-of-type(13)')[0].string.split('-')
-					last_ten = row.select('td:nth-of-type(15)')[0].string
-					streak = row.select('td:nth-of-type(16)')[0].string
+			for team in record['teamRecords']:
+				teamAbbr = team['team']['abbreviation']
+				#############
+				## NOTE: I can easily change this to conferenceRank!
+				## Probably should write code for this in future.
+				#############
+				rank = int( team['divisionRank'] )
+				w    = int( team['leagueRecord']['wins'] )
+				l    = int( team['leagueRecord']['losses'] )
+				ot   = int( team['leagueRecord']['ot'] )
+				p    = int( team['points'] )
+				gf   = int( team['goalsScored'] )
+				ga   = int( team['goalsAgainst'] )
+				diff = gf - ga
+				home = str(team['records']['overallRecords'][0]['wins']) + '-' + str(team['records']['overallRecords'][0]['losses']) + '-' + str(team['records']['overallRecords'][0]['ot'])
+				away = str(team['records']['overallRecords'][1]['wins']) + '-' + str(team['records']['overallRecords'][1]['losses']) + '-' + str(team['records']['overallRecords'][1]['ot'])
+				last_ten = str(team['records']['overallRecords'][3]['wins']) + '-' + str(team['records']['overallRecords'][3]['losses']) + '-' + str(team['records']['overallRecords'][3]['ot'])
+				streak = team['streak']['streakCode']
+				streak_num = team['streak']['streakNumber']
+				streak_type = team['streak']['streakType']
 
-					streak_type = None
-					if streak[:1] == 'L':
-						streak_type = 'loss'
-					elif streak[:1] == 'W':
-						streak_type = 'win'
-					elif streak[:1] == 'O':
-						streak_type = 'ot'
-
-					streak = re.sub(r'(\w)\w+\s(\d+)',r'\1\2',streak)
-
-					standingObj = {
-						#"team_id":"miami-heat",
-						"last_name": getTeamName(teamAbbr,nhlTeamNames),
-						"first_name": getTeamCity(teamAbbr,nhlTeamNames),
-						"conference": conference,
-						"division": division,
-						"rank":rank,
-						"won": w,
-						"lost":l,
-						"ot":ot,
-						"points": p,
-						"goals_for": gf,
-						"goals_against": ga,
-						"goal_differential": diff,
-						"home_won": home[0],
-						"home_lost":home[1],
-						"home_ot":home[2],
-						"away_won":away[0],
-						"away_lost":away[1],
-						"away_ot":away[2],
-						"last_ten":last_ten,
-						"streak": streak,
-						"streak_total":streak[:-1],
-						"streak_type": streak_type
-					}
-					standings['standing'].append(standingObj)
+				standingObj = {
+					#"team_id":"miami-heat",
+					"last_name": getTeamName(teamAbbr,nhlTeamNames),
+					"first_name": getTeamCity(teamAbbr,nhlTeamNames),
+					"conference": conference,
+					"division": division,
+					"rank":rank,
+					"won": w,
+					"lost":l,
+					"ot":ot,
+					"points": p,
+					"goals_for": gf,
+					"goals_against": ga,
+					"goal_differential": diff,
+					"home_won": home[0],
+					"home_lost":home[1],
+					"home_ot":home[2],
+					"away_won":away[0],
+					"away_lost":away[1],
+					"away_ot":away[2],
+					"last_ten":last_ten,
+					"streak": streak_num,
+					"streak_total":streak,
+					"streak_type": streak_type
+				}
+				standings['standing'].append(standingObj)
 		return standings
 	return None
