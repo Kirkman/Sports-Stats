@@ -302,20 +302,42 @@ def parseSchedule(year, week, season):
 
 
 
-def scrapeStandings():
+def scrapeStandings(offseasonFlag=False):
+	standingsUrl = 'http://www.nfl.com/standings'
 
-	html = scrape('http://www.nfl.com/standings')
+	# Before we grab the standings, we need to do some prep work in case
+	# this is actually the offseason.
+
+	lastGame = False
+
+	# If this is the offseason, then determine most recent game listed 
+	# in the nflgame database (format: 2016020700). This should be final game
+	# of the previous season (super bowl).
+	if offseasonFlag:
+		lastGame = next(reversed(nflgame.sched.games))
+
+	# If we found a final game, then set our standings date to the date of that game.
+	# This old date will clue in the Sports Stats client that we're in the offseason.
+	if offseasonFlag and lastGame:
+		lastDate = datetime.datetime.strptime(lastGame[0:8], '%Y%m%d')
+		eventsDate = lastDate.strftime('%Y-%m-%dT%H:%M:%S-06:00')
+		prevSeason = str( int( lastGame[0:4] ) - 1 )
+		standingsUrl = standingsUrl + '?category=div&season=' + prevSeason + '-REG'
+
+	# Otherwise just use today's date.
+	else:
+		eventsDate = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-06:00')
+
+
+	html = scrape(standingsUrl)
 	if html:
-		soup = BeautifulSoup(html)
+		soup = BeautifulSoup(html,'lxml')
 		table = soup.find('table', {'class':'data-table1'})
 	
 		# keep track of which conference
 		conference = None
 		# keep track of which division
 		division = None
-
-		# build standings date stamp
-		eventsDate = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S-06:00')
 
 		# create standings object
 		standings = {

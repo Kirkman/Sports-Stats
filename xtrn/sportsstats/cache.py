@@ -144,6 +144,7 @@ if thisWeek:
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
 	# After the Super Bowl
 	elif thisWeek > 25 and today[4:] > 0207:
+		print 'AFTER SUPER BOWL'
 		lastWeek = thisWeek - 1
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'lastweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'thisweek'} )
@@ -341,12 +342,13 @@ if __name__ == '__main__':
 	#######################################################
 	# Add sport to global stats object
 	statsObject['SPORTSSTATS']['NFL'] = {}
-	# Purge out outdated cache files
-	#allDates = dates + nflDates
-	#cleanup(allDates)
+
+	offseasonFlag = False
+
 	for week in weeks:
 		# Only grab skeds if If there's a week number. Otherwise it's the offseason. 
 		if week['num'] is not None:
+			# Keep track of if we're in the offseason
 			# During postseason, we cannot grab the next week's schedule.
 			# Instead, let's store nulls to indicate this.
 			if (thisPhase == 'POST' or thisPhase == 'PRE') and week['num'] > thisWeek:
@@ -366,9 +368,10 @@ if __name__ == '__main__':
 				# Add relative NFL weeks
 				theRelative = week['relative']
 				statsObject['SPORTSSTATS']['DATES'][theRelative] = week['date']
+		else:
+			offseasonFlag = True
 
-
-	theStandings = nfl.scrapeStandings()
+	theStandings = nfl.scrapeStandings(offseasonFlag)
 	# Add standings to global stats object
 	statsObject['SPORTSSTATS']['NFL']['STANDINGS'] = theStandings
 

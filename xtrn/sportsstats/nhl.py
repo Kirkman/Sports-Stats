@@ -265,8 +265,11 @@ def scrapeGames(scrapeDate):
 				#date = str(year) + str(week).zfill(2)
 				# save results into separate event file
 				#save_result('nhl','events',date,events)
-				return events
+		return events
 
+	# Return empty events object if the nhl.com JSON was also empty
+	else:
+		return events
 
 
 
