@@ -12,6 +12,12 @@ Sysops are encouraged to connect to my Sports Stats JSON service to obtain the s
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
+v0.7.2
+---------------
+
+* Changed names of several NHL, NFL stadiums
+* Several improvements to display of NFL schedules
+
 v0.7.1
 ---------------
 

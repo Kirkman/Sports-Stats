@@ -266,44 +266,6 @@ def main(mysport,date):
 	print eventsJson
 	if eventsJson:
 		events = json.loads(eventsJson)
-
-		#################################################################
-		## HOORAY, DON'T NEED TO GRAB EVERY BOX SCORE NOW!
-		## The following code is no longer necessary since XMLStats
-		## Now provides each game's *_period_scores arrays in the 
-		## events json.
-		## I'm keeping this code here because in the future I may want
-		## to let users choose a game and see more details.
-		## But for a simple list of box scores, I don't need it anymore.
-		#################################################################
-
-		# iterate over events
-# 		for event in events['event']:
-# 			print "----------------------------------------------"
-# 			print event
-# 			# if the game is finished, append box score data to the event file
-# 			if (event['event_status'].lower() == 'completed') and (event['season_type'] in ['regular','post']):
-# 				# get id
-# 				id = event['event_id']
-# 				print "Getting box " + event['event_id']
-# 				boxJson = getStats(mysport, 'boxscore', date, id)
-# 				print boxJson
-# 				if boxJson:
-# 					box = json.loads(boxJson)
-# 					event['away_period_scores'] = box['away_period_scores']
-# 					event['home_period_scores'] = box['home_period_scores']
-# 					if mysport == 'mlb':
-# 						event['away_batter_totals'] = box['away_batter_totals']
-# 						event['home_batter_totals'] = box['home_batter_totals']
-# 					elif mysport == 'nba':
-# 						event['away_totals'] = box['away_totals']
-# 						event['home_totals'] = box['home_totals']
-# 				else:
-# 					boxJson = None
-
-					#print str(box['away_totals']['free_throw_percentage'])
-		# save results into separate event file
-		#save_result(mysport,'events',date,events)
 		return events
 	return None
 
@@ -351,7 +313,7 @@ if __name__ == '__main__':
 			# Keep track of if we're in the offseason
 			# During postseason, we cannot grab the next week's schedule.
 			# Instead, let's store nulls to indicate this.
-			if (thisPhase == 'POST' or thisPhase == 'PRE') and week['num'] > thisWeek:
+			if (thisPhase == 'POST') and week['num'] > thisWeek:
 				theWeek = week['date']
 				statsObject['SPORTSSTATS']['NFL'][theWeek] = None
 				theRelative = week['relative']

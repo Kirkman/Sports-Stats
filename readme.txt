@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Mar 8, 2016               #
+#        date: Aug 30, 2016              #
 #                                        #
 ##########################################
 
@@ -89,6 +89,11 @@ but if you want to double-check:
 ==========================================
 
 RELEASE NOTES:
+
+v0.7.2:
+* Changed names of several NHL, NFL stadiums
+* Several improvements to display of NFL schedules
+
 
 v0.7.1:
 * Overhauled NHL scraper to grab data from NHL.com's new JSON API

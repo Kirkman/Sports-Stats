@@ -73,7 +73,7 @@ function getDates() {
 
 
 
-function cleanName(team,method) {
+function cleanName(str,method) {
 	method  = method  || 'standings';
 	var replacements = [];
 
@@ -101,16 +101,22 @@ function cleanName(team,method) {
 			[/^Diamondbacks/i, 'D\'Backs'],
 			[/^Trail Blazers/i, 'T Blazers'],
 			[/^Timberwolves/i, 'T\'wolves'],
-			[/^Blue Jackets/i, 'BlueJackets']
+			[/^Blue Jackets/i, 'BlueJackets'],
+			[/University/i, 'U.'],
+			[/America/i, 'Amer.'],
+			[/Mercedes-Benz Superdome/i, 'Superdome'],
+			[/Financial/i, 'Fin.'],
+			[/Stadium/i, 'Std.'],
+			[/Los Angeles Memorial/i, 'Std.']
 		];
 	}
 
 	var len = replacements.length;
 	for (var i = 0; i < len; i++) {
 		var replacement = replacements[i];
-		team = team.replace(replacement[0], replacement[1]);
+		str = str.replace(replacement[0], replacement[1]);
 	}
-	return team;
+	return str;
 }
 
 
@@ -337,8 +343,8 @@ function chooseSport() {
 	if (mysport == 'nhl' || mysport == 'nba') {
 		var d = new Date();
 		var month = d.getMonth();
-		// display NBA/NHL conference standings from March-September. 
-		if (month >= 2 && month < 9 ) { byDivision = false; }
+		// display NBA/NHL conference standings from April-September. 
+		if (month >= 3 && month < 9 ) { byDivision = false; }
 	}
 	
 	// GRAB DATES
@@ -564,22 +570,6 @@ KEY_END    ='\x05';     ctrl-e (end)
 KEY_DEL    ='\x7f';     (del)
 */
 
-/*
-convert userInput to ascii:
-Up: 30
-Right: 6
-Left: 29
-Down: 10
-
-Num8: 56
-Num6: 54
-Num4: 52
-Num2: 50
-
-Num5: 53
-
-*/
-
 
 
 // Grab the locally-cached stats
@@ -648,7 +638,6 @@ function displayScores(sport,date) {
 	headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
 	headerFrame.gotoxy(2,1);
 	var sportHeader = sport + ' scoreboard';
-	sportHeader = sportHeader;
 	headerFrame.putmsg(highWhiteDarkCyan + sportHeader);
 	headerFrame.draw();
 
@@ -662,7 +651,22 @@ function displayScores(sport,date) {
 
 		var dateHeader = statDate;
 		if (sport == 'nfl') {
-			dateHeader = 'Week ' + date.toString().charAt(4) + date.toString().charAt(5);
+			var weekStr = date.toString().charAt(4) + '' + date.toString().charAt(5);
+			var weekInt = parseInt( weekStr );
+			var phase = '';
+			if ( weekInt <= 4 ) {
+				phase = ' (PRE)';
+			}
+			else if ( weekInt > 21 ) {
+				phase = ' (POST)';
+				weekInt = weekInt - 4
+			}
+			else {
+				// Regular season
+				weekInt = weekInt - 4
+			}
+			weekStr = weekInt.toString();
+			var dateHeader = 'Week ' + weekStr + phase;
 		}
 
 		// add the date to header bar
@@ -888,15 +892,25 @@ function displayScores(sport,date) {
 						//debug('i: ' + i + '  |  i%4:' + i%4);
 
 					} // if game is completed
+
 					// This is a matchup, not a box score
 					else {
 						// 39
 						var away = cleanName(event.away_team.last_name).rjust(16) + ' ';
 						var home = (' ' + cleanName(event.home_team.last_name)).ljust(17);
 						var eventStartTime = new Date(event.start_date_time).format('h:mm tt');
-						var site = event.site.name;
-						eventStartTime = ' ' + eventStartTime.ljust(10);
-						site = site.rjust(26);
+						eventStartTime = eventStartTime.replace(':00','');
+						var eventStartDay = '';
+						var site = '';
+						if (sport == 'nfl') {
+							eventStartDay = new Date(event.start_date_time).format('MMM D');
+							eventStartTime = (' ' + eventStartTime + ', ' + eventStartDay ).ljust(16);
+							site = cleanName( event.site.name, 'events' ).rjust(20);
+						}
+						else {
+							eventStartTime = (' ' + eventStartTime ).ljust(10);
+							site = event.site.name.rjust(26);
+						}
 
 						if ( isOdd(i) ) { 
 							var y = ( (i-1) / 2 ) * 5; 

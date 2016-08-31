@@ -414,8 +414,25 @@ function displayScores(sport,date) {
 	if ( eventsJson ) {
 		var statDate = eventsJson['events_date'].split('T')[0];
 
+		// NFL is a completely different; display by weeks not by days
 		if (sport == 'nfl') {
-			var statDateStr = 'Week ' + date.toString().charAt(4) + date.toString().charAt(5);
+			var weekStr = date.toString().charAt(4) + '' + date.toString().charAt(5);
+			var weekInt = parseInt( weekStr );
+			var phase = '';
+			if ( weekInt <= 4 ) {
+				phase = ' (preseason)';
+			}
+			else if ( weekInt > 21 ) {
+				phase = ' (postseason)';
+				weekInt = weekInt - 4
+			}
+			else {
+				// Regular season
+				weekInt = weekInt - 4
+			}
+
+			weekStr = weekInt.toString();
+			var statDateStr = 'Week ' + weekStr + phase;
 		}
 		else {
 			var statDateStr = new Date( parseDate(statDate) ).format('MMM D, YYYY');
@@ -549,10 +566,17 @@ function displayScores(sport,date) {
 					var away = cleanName(event.away_team.last_name);
 					var home = cleanName(event.home_team.last_name);
 					var eventStartTime = new Date(event.start_date_time).format('h:mm tt');
+					eventStartTime = eventStartTime.replace(':00','');
+					var eventStartDay = '';
+					if (sport == 'nfl') {
+						eventStartDay = new Date(event.start_date_time).format('MMM D');
+						eventStartDay = ', ' + eventStartDay;
+					}
+
 					var site = event.site.name;
 
 					output += '<h4>' + away + ' at ' + home + '</h4>';
-					output += '<p>' + eventStartTime + ' ' + site + '</p>';
+					output += '<p>' + eventStartTime + eventStartDay + ' &bull; ' + site + '</p>';
 					output += '</div>';
 				} // matchup
 			} // for loop iterating over events
