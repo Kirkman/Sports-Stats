@@ -1,0 +1,14 @@
+arrow==0.10.0
+beautifulsoup4==4.6.0
+bs4==0.0.1
+configparser==3.5.0
+html5lib==0.999999999
+httplib2==0.10.3
+lxml==3.8.0
+mechanize==0.3.5
+nflgame==1.2.20
+python-dateutil==2.6.1
+pytz==2017.2
+six==1.10.0
+subprocess32==3.2.7
+webencodings==0.5.1

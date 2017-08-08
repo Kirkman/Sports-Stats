@@ -14,7 +14,6 @@ from cache import *
 import datetime
 import re
 
-
 nflTeamNames = [
 	{ 'abbrev':'ARI', 'city': 'Arizona', 'team': 'Cardinals', 'full': 'Arizona Cardinals', 'alternates': [], 'site': 'University of Phoenix Stadium' },
 	{ 'abbrev':'ATL', 'city': 'Atlanta', 'team': 'Falcons', 'full': 'Atlanta Falcons', 'alternates': [], 'site': 'Georgia Dome' },
@@ -130,8 +129,28 @@ def parseSchedule(year, week, season):
 	else:
 		theweek = week
 
-	games_played = nflgame.games(year, week=theweek, kind=season)
-	print games_played
+	# If nflgame errors out while trying to get the games_played,
+	# then the problem is probably a nonexistent or out-of-date schedule.
+	# So, we'll use try/except to catch problems.
+	try:
+		games_played = nflgame.games(year, week=theweek, kind=season)
+		print games_played
+	# If there was an exception, let's try to update the schedule
+	# Unfortunately, update_sched.py was designed to be run from the command line
+	# and requires command line arguments for this update procedure. 
+	except:
+		import os
+		import distutils.sysconfig
+		sp_path = distutils.sysconfig.get_python_lib()
+		us_path = sp_path + '/nflgame/update_sched.py'
+		# invoke `python {pythonpath}/site-packages/nflgame/update_sched.py --year 2017`
+		os.system('python ' + us_path + ' --year ' + str(year) )
+		# wait 1 minute for the update
+		time.sleep(60)
+		# Try fetching games_played again. Hopefully it works.
+		games_played = nflgame.games(year, week=theweek, kind=season)
+		print games_played
+
 
 	games_sked = nflgame.update_sched.week_schedule(year, season, theweek)
 	print games_sked

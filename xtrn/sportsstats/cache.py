@@ -61,25 +61,32 @@ dates = [tomorrow,today,yesterday]
 # Get the current year and week number
 thisYear, thisWeek = nflgame.live.current_year_and_week()
 
-# Get the current season phase ('PRE', 'REG', or 'POST')
-thisPhase = nflgame.live._cur_season_phase
-print 'thisYear: ' + str(thisYear)  + ' | thisWeek: ' + str(thisWeek) + ' | thisPhase: '+ str(thisPhase)
+# In the offseason, don't bother calculating
 print today[4:]
+if today[4:] > '0207' and today[4:] < '0801':
+	thisPhase = 'POST'
+	thisWeek = 26
 
-# CALCULATE NEW WEEK NUMBER!
-# e.g. if we're in postseason, change the week number from '1' to '22'
-# I'm doing this so that I can continue to store the games in this style:
-# statsObject['SPORTSSTATS']['DATES']['201418']
+else:
+	# Get the current season phase ('PRE', 'REG', or 'POST')
+	thisPhase = nflgame.live._cur_season_phase
+	print 'thisYear: ' + str(thisYear)  + ' | thisWeek: ' + str(thisWeek) + ' | thisPhase: '+ str(thisPhase)
+	print today[4:]
 
-# If we're in postseason, no change necessary
+	# CALCULATE NEW WEEK NUMBER!
+	# e.g. if we're in postseason, change the week number from '1' to '22'
+	# I'm doing this so that I can continue to store the games in this style:
+	# statsObject['SPORTSSTATS']['DATES']['201418']
 
-# If we're in regular season, change 1 to 5.
-if thisPhase == 'REG':
-	thisWeek = thisWeek + 4
+	# If we're in postseason, no change necessary
 
-# If we're in postseason, change the week number from '1' to '22'
-elif thisPhase == 'POST':
-	thisWeek = thisWeek + 21
+	# If we're in regular season, change 1 to 5.
+	if thisPhase == 'REG':
+		thisWeek = thisWeek + 4
+
+	# If we're in postseason, change the week number from '1' to '22'
+	elif thisPhase == 'POST':
+		thisWeek = thisWeek + 21
 
 # Create weeks list
 weeks = []
