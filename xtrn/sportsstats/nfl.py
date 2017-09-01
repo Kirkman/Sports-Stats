@@ -41,7 +41,7 @@ nflTeamNames = [
 	{ 'abbrev':'OAK', 'city': 'Oakland', 'team': 'Raiders', 'full': 'Oakland Raiders', 'alternates': [], 'site': 'O.co Coliseum' },
 	{ 'abbrev':'PHI', 'city': 'Philadelphia', 'team': 'Eagles', 'full': 'Philadelphia Eagles', 'alternates': [], 'site': 'Lincoln Financial Field' },
 	{ 'abbrev':'PIT', 'city': 'Pittsburgh', 'team': 'Steelers', 'full': 'Pittsburgh Steelers', 'alternates': [], 'site': 'Heinz Field' },
-	{ 'abbrev':'SD', 'city': 'San Diego', 'team': 'Chargers', 'full': 'San Diego Chargers', 'alternates': ['S.D.', 'SDG'], 'site': 'Qualcomm Stadium' },
+	{ 'abbrev':'LAC', 'city': 'Los Angeles', 'team': 'Chargers', 'full': 'Los Angeles Chargers', 'alternates': ['L.A.C.'], 'site': 'StubHub Center' },
 	{ 'abbrev':'SEA', 'city': 'Seattle', 'team': 'Seahawks', 'full': 'Seattle Seahawks', 'alternates': [], 'site': 'CenturyLink Field' },
 	{ 'abbrev':'SF', 'city': 'San Francisco', 'team': '49ers', 'full': 'San Francisco 49ers', 'alternates': ['S.F.', 'SFO'], 'site': 'Levi\'s Stadium' },
 # 	{ 'abbrev':'STL', 'city': 'St. Louis', 'team': 'Rams', 'full': 'St. Louis Rams', 'alternates': ['S.T.L.'], 'site': 'Edward Jones Dome' },
