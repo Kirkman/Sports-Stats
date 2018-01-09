@@ -107,8 +107,8 @@ but if you want to double-check:
 RELEASE NOTES:
 
 v0.7.3:
-* Change web client to make one main JSON data request per page
-  I'm asking that sysops only allow logged-in users to see Sports Stats.
+* Change web client to make one main JSON data request per page.
+  I'm asking that sysops only allow logged-in web users to see Sports Stats.
   (See revised web installation instructions above)
 * Change ANSI client to make one main JSON data request per session
 * New basketball image
