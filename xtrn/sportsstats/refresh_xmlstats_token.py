@@ -71,7 +71,7 @@ def refreshToken():
 	# If we successfully loaded the page
 	if tokenpage:
 		# Grab the first form, which should be the token reset form
-		br.select_form(nr=0)
+		br.select_form(nr=1)
 		# Find the token reset form
 		control = br.form.find_control("accessToken")
 		if control:
@@ -86,8 +86,8 @@ def refreshToken():
 					config.write(configfile)
 
 				# This chunk of BS4 code is all for grabbing the expiration date
-				soup = BeautifulSoup(tokenpage)
-				form = soup.find('form')
+				soup = BeautifulSoup(tokenpage, 'lxml')
+				form = soup.find('form', {'name':'f'})
 				if form is not None:
 					divs = form.findAll('div', {'class':'pure-control-group'})
 					if divs is not None:
@@ -100,6 +100,7 @@ def refreshToken():
 									exp = divText.replace( labelText, '' )
 									exp = re.sub( r' -\d\d00', '', exp )
 									exp = exp.strip()
+									print exp
 									# Store new expiration date in our config object
 									config.set('DEFAULT', 'expiration', exp)
 									# Write new expiration date into our XMLStats INI file
