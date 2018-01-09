@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Aug 30, 2016              #
+#        date: Jan 9, 2018               #
 #                                        #
 ##########################################
 
@@ -44,7 +44,7 @@ If you want to install the Web app version of Sports Stats:
 
   * Copy the contents of each downloaded folder (/mods/, /web/, etc.)
     into the equivalent folders in your local SBBS installation.
-  
+
 
 THEN...
 
@@ -66,7 +66,23 @@ A. Synchronet config
 
 
 -------------------------
-B. Stats JSON config
+B. Web v4 config
+-------------------------
+
+Simply copying the files into the correct directories is enough to get the web
+client to work. 
+
+BUT -- I would ask you to hide Sports Stats from public view. Only let logged-in users see it. This will help keep my BBS from being overwhelmed with JSON 
+requests caused by bots/spiders. 
+
+1. Open the `webctrl.ini` file in /pages/
+2. Add the following lines to `webctrl.ini`
+   [*sportsstats.xjs]
+   AccessRequirements = LEVEL 50 AND REST NOT G
+
+
+-------------------------
+C. Stats JSON config
 -------------------------
 
 I highly recommend that you subscribe to the inter-BBS stats
@@ -77,8 +93,8 @@ version of Synchronet, this door will not work for you.
 The included 'server.ini' file is already configured to talk to my server, 
 but if you want to double-check:
 
-1. In the Sports Stats directory (ie /xtrn/sportsstats), open 'server.ini'
-2. Edit 'server.ini' to have these values:
+1. In the Sports Stats directory (ie /xtrn/sportsstats), open `server.ini`
+2. Edit `server.ini` to have these values:
    host = guardian.synchro.net
    port = 10088
 3. Recycle services or restart Synchronet for changes to take effect.
@@ -89,6 +105,17 @@ but if you want to double-check:
 ==========================================
 
 RELEASE NOTES:
+
+v0.7.3:
+* Change web client to make one main JSON data request per page
+  I'm asking that sysops only allow logged-in users to see Sports Stats.
+  (See revised web installation instructions above)
+* Change ANSI client to make one main JSON data request per session
+* New basketball image
+* Change ANSI client's menu to use Tree.js
+* Avoid blue artifacts when switching to standings or sked in ANSI client 
+* Overhauled NFL standings scraper
+* Minor tweaks
 
 v0.7.2:
 * Changed names of several NHL, NFL stadiums
@@ -101,7 +128,7 @@ v0.7.1:
 
 v0.7:
 * Developed an Synchronet Web v4-compatible Sports Stats .xjs app. Now your
-  users can  check standings, scores, and schedules on your BBS website!
+  users can check standings, scores, and schedules on your BBS website!
 * Switched to using the js-date-format.js library to format dates and times. 
   I'm no longer modifying Date.prototype!
 * Numerous little bug fixes for the ANSI version, which arose from development 
