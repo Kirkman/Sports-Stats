@@ -36,8 +36,8 @@ nflTeamNames = [
 	{ 'abbrev':'MIN', 'city': 'Minnesota', 'team': 'Vikings', 'full': 'Minnesota Vikings', 'alternates': [], 'site': 'U.S. Bank Stadium' },
 	{ 'abbrev':'NE', 'city': 'New England', 'team': 'Patriots', 'full': 'New England Patriots', 'alternates': ['N.E.', 'NWE'], 'site': 'Gillette Stadium' },
 	{ 'abbrev':'NO', 'city': 'New Orleans', 'team': 'Saints', 'full': 'New Orleans Saints', 'alternates': ['N.O.', 'NOR'], 'site': 'Mercedes-Benz Superdome' },
-	{ 'abbrev':'NYG', 'city': 'New York', 'team': 'Giants', 'full': 'N.Y.G.', 'alternates': [], 'site': 'MetLife Stadium' },
-	{ 'abbrev':'NYJ', 'city': 'New York', 'team': 'Jets', 'full': 'N.Y.J.', 'alternates': [], 'site': 'MetLife Stadium' },
+	{ 'abbrev':'NYG', 'city': 'New York', 'team': 'Giants', 'full': 'N.Y.G.', 'alternates': ['New York Giants'], 'site': 'MetLife Stadium' },
+	{ 'abbrev':'NYJ', 'city': 'New York', 'team': 'Jets', 'full': 'N.Y.J.', 'alternates': ['New York Jets'], 'site': 'MetLife Stadium' },
 	{ 'abbrev':'OAK', 'city': 'Oakland', 'team': 'Raiders', 'full': 'Oakland Raiders', 'alternates': [], 'site': 'O.co Coliseum' },
 	{ 'abbrev':'PHI', 'city': 'Philadelphia', 'team': 'Eagles', 'full': 'Philadelphia Eagles', 'alternates': [], 'site': 'Lincoln Financial Field' },
 	{ 'abbrev':'PIT', 'city': 'Pittsburgh', 'team': 'Steelers', 'full': 'Pittsburgh Steelers', 'alternates': [], 'site': 'Heinz Field' },
@@ -49,6 +49,13 @@ nflTeamNames = [
 	{ 'abbrev':'TEN', 'city': 'Tennessee', 'team': 'Titans', 'full': 'Tennessee Titans', 'alternates': [], 'site': 'LP Field' },
 	{ 'abbrev':'WAS', 'city': 'Washington', 'team': 'Redskins', 'full': 'Washington Redskins', 'alternates': ['WSH'], 'site': 'FedExField' },
 ]
+
+def getTeamAbbr(team,teamNames):
+	for t in teamNames:
+		if t['full'] == team:
+			return t['abbrev']
+	return team
+
 def getTeamCity(team,teamNames):
 	for t in teamNames:
 		if t['abbrev'] == team:
@@ -146,7 +153,9 @@ def parseSchedule(year, week, season):
 		# invoke `python {pythonpath}/site-packages/nflgame/update_sched.py --year 2017`
 		os.system('python ' + us_path + ' --year ' + str(year) )
 		# wait 1 minute for the update
+		print 'sleeping for 1 minute'
 		time.sleep(60)
+		print 'finished sleeping'
 		# Try fetching games_played again. Hopefully it works.
 		games_played = nflgame.games(year, week=theweek, kind=season)
 		print games_played
@@ -199,26 +208,26 @@ def parseSchedule(year, week, season):
 			seasonType = 'pre'
 
 		eventObj = {
-			"start_date_time": eventsDateTime, 
+			"start_date_time": eventsDateTime,
 			"away_team": {
-				"first_name": awayCity, 
-				"last_name": awayTeam, 
-				"abbreviation": s['away'], 
-				"full_name": awayFull, 
+				"first_name": awayCity,
+				"last_name": awayTeam,
+				"abbreviation": s['away'],
+				"full_name": awayFull,
 				"active": True
-			}, 
-			"event_id": eventId, 
-			"season_type": seasonType, 
+			},
+			"event_id": eventId,
+			"season_type": seasonType,
 			"home_team": {
-				"first_name": homeCity, 
-				"last_name": homeTeam, 
-				"abbreviation": s['home'], 
-				"full_name": homeFull, 
+				"first_name": homeCity,
+				"last_name": homeTeam,
+				"abbreviation": s['home'],
+				"full_name": homeFull,
 				"active": True
-			}, 
+			},
 			"site": {
 				"name": stadium
-			}, 
+			},
 			"sport": "NFL"
 		}
 
@@ -250,12 +259,12 @@ def parseSchedule(year, week, season):
 			awayScore = g.score_away
 
 			#print('-'*30)
-			#print homeTeam, awayScoresByPeriod, str(homeScore) 
-			#print awayTeam, homeScoresByPeriod, str(awayScore) 
+			#print homeTeam, awayScoresByPeriod, str(homeScore)
+			#print awayTeam, homeScoresByPeriod, str(awayScore)
 
 			eventObj.update({
-				"away_period_scores": awayScoresByPeriod, 
-				"away_points_scored": awayScore, 
+				"away_period_scores": awayScoresByPeriod,
+				"away_points_scored": awayScore,
 				"away_totals": {
 					"points": awayScore,
 					"first_downs": g.stats_away.first_downs,
@@ -269,10 +278,10 @@ def parseSchedule(year, week, season):
 					"punt_yds": g.stats_away.punt_yds,
 					"punt_avg": g.stats_away.punt_avg,
 					"pos_time": None
-				}, 
-				"home_period_scores": homeScoresByPeriod, 
-				"home_points_scored": homeScore, 
-				"event_status": "completed", 
+				},
+				"home_period_scores": homeScoresByPeriod,
+				"home_points_scored": homeScore,
+				"event_status": "completed",
 				"home_totals": {
 					"points": homeScore,
 					"first_downs": g.stats_home.first_downs,
@@ -330,7 +339,7 @@ def scrapeStandings(offseasonFlag=False):
 
 	lastGame = False
 
-	# If this is the offseason, then determine most recent game listed 
+	# If this is the offseason, then determine most recent game listed
 	# in the nflgame database (format: 2016020700). This should be final game
 	# of the previous season (super bowl).
 	if offseasonFlag:
@@ -352,112 +361,113 @@ def scrapeStandings(offseasonFlag=False):
 	html = scrape(standingsUrl)
 	if html:
 		soup = BeautifulSoup(html,'lxml')
-		table = soup.find('table', {'class':'data-table1'})
-	
-		# keep track of which conference
-		conference = None
-		# keep track of which division
-		division = None
+		script = soup.find(lambda tag: tag.name == 'script' and '__INITIAL_DATA__' in tag.text)
+		initial_data = script.text
+		initial_data = initial_data.strip()
+		initial_data = initial_data.replace('__INITIAL_DATA__ = ','')
+		initial_data = initial_data.replace('__REACT_ROOT_ID__ = "content";','')
+		initial_data = initial_data.strip()
+		initial_data = initial_data.replace('}};','}}')
+
+		standings_src = json.loads(initial_data)
 
 		# create standings object
 		standings = {
-			"standings_date": eventsDate, 
+			"standings_date": eventsDate,
 			"standing": []
 		}
 
 		# loop through every team in the option list
-		for row in table.findAll('tr'):
-	
-			# Figure out what kind of row this is
-			rowClass = row.get('class')
-			if rowClass:
-				# Conference header
-				if 'thd1' in rowClass:
-					thisConference = row.td.string.strip()
-					if 'american' in thisConference.lower():
-						conference = 'AFC'
-					elif 'national' in thisConference.lower():
-						conference = 'NFC'
-				# Division header
-				elif 'thd2' in rowClass:
-					thisDivision = row.td.string.strip()
-					if 'east' in thisDivision.lower():
-						division = 'East'
-					elif 'west' in thisDivision.lower():
-						division = 'West'
-					elif 'north' in thisDivision.lower():
-						division = 'North'
-					elif 'south' in thisDivision.lower():
-						division = 'South'
-				# Team's standings line
-				elif 'tbdy1' in rowClass:
-					teamRaw = row.select('td:nth-of-type(1)')
-					if teamRaw:
-						teamUrl = teamRaw[0].find('a').get('href')
-						if teamUrl:
-							teamAbbr = teamUrl.split('=')[1]
-						w = int(row.select('td:nth-of-type(2)')[0].string)
-						l = int(row.select('td:nth-of-type(3)')[0].string)
-						t = int(row.select('td:nth-of-type(4)')[0].string)
-						pct = row.select('td:nth-of-type(5)')[0].string
-						pf = int(row.select('td:nth-of-type(6)')[0].string)
-						pa = int(row.select('td:nth-of-type(7)')[0].string)
-						net_pts = int(row.select('td:nth-of-type(8)')[0].string)
-						td = int(row.select('td:nth-of-type(9)')[0].string)
-						home = row.select('td:nth-of-type(10)')[0].string.split('-')
-						away = row.select('td:nth-of-type(11)')[0].string.split('-')
-						div = row.select('td:nth-of-type(12)')[0].string.split('-')
-						conf = row.select('td:nth-of-type(14)')[0].string.split('-')
-						streak = row.select('td:nth-of-type(17)')[0].string
-						last_five = row.select('td:nth-of-type(18)')[0].string
+		for team in standings_src['instance']['teamRecords']:
+			print team
 
-						streak_type = None
-						if streak[-1:] == 'L':
-							streak_type = 'loss'
-						elif streak[-1:] == 'W':
-							streak_type = 'win'
-						# Change 2W to W2
-						streak = re.sub(r'(\d+)(\w)',r'\2\1',streak)
+			thisConference = team['conference']
+			if 'american' in thisConference.lower():
+				conference = 'AFC'
+			elif 'national' in thisConference.lower():
+				conference = 'NFC'
+
+			thisDivision = team['division']
+			if 'east' in thisDivision.lower():
+				division = 'East'
+			elif 'west' in thisDivision.lower():
+				division = 'West'
+			elif 'north' in thisDivision.lower():
+				division = 'North'
+			elif 'south' in thisDivision.lower():
+				division = 'South'
+
+			teamAbbr = getTeamAbbr(team['fullName'], nflTeamNames)
+
+			w = team['overallWin']
+			l = team['overallLoss']
+			t = team['overallTie']
+			pct = team['overallPct']
+			pf = team['overallPtsFor']
+			pa = team['overallPtsAgainst']
+			net_pts = pf - pa
+			home_w = team['homeWin']
+			home_l = team['homeLoss']
+			away_w = team['roadWin']
+			away_l = team['roadLoss']
+			div_w = team['divisionWin']
+			div_l = team['divisionLoss']
+			conf_w = team['conferenceWin']
+			conf_l = team['conferenceLoss']
+			streak = team['overallStreak']
+			last_five = str(team['last5Win']) + '-' + str(team['last5Loss']) + '-' + str(team['last5Tie'])
+
+			streak_type = None
+			if streak[-1:] == 'L':
+				streak_type = 'loss'
+			elif streak[-1:] == 'W':
+				streak_type = 'win'
+			# Change 2W to W2
+			streak = re.sub(r'(\d+)(\w)',r'\2\1',streak)
 
 
-						standingObj = {
-	#						"team_id":"miami-heat",
-							"last_name": getTeamName(teamAbbr,nflTeamNames),
-							"first_name": getTeamCity(teamAbbr,nflTeamNames),
-							"conference": conference,
-							"division": division,
-	#						"rank":2,
-	#						"ordinal_rank":"2nd",
-	#						"playoff_seed":2,
-							"won": w,
-							"lost":l,
-							"tied":t,
-							"win_percentage": pct,
-	#						"games_back":2.0,
-	#						"games_played":82,
-	#						"point_differential_per_game":"4.8",
-	#						"points_allowed_per_game":"97.4",
-							"points_for": pf,
-							"points_against": pa,
-							"net_pts": net_pts,
-							"touchdowns": td,
-	#						"point_differential":390,
-	#						"points_scored_per_game":"102.2",
-							"home_won": home[0],
-							"home_lost":home[1],
-							"away_won":away[0],
-							"away_lost":away[1],
-							"conference_won": conf[0],
-							"conference_lost": conf[1],
-							"division_won": div[0],
-							"division_lost": div[1],
-	#						"last_ten":"4-6",
-							"last_five": last_five,
-							"streak": streak,
-							"streak_total":streak[:-1],
-							"streak_type": streak_type
-						}
-						standings['standing'].append(standingObj)
+			standingObj = {
+				# "team_id":"miami-heat",
+				"last_name": getTeamName(teamAbbr,nflTeamNames),
+				"first_name": getTeamCity(teamAbbr,nflTeamNames),
+				"conference": conference,
+				"division": division,
+				# "rank":2,
+				# "ordinal_rank":"2nd",
+				# "playoff_seed":2,
+				"won": w,
+				"lost":l,
+				"tied":t,
+				"win_percentage": pct,
+				# "games_back":2.0,
+				# "games_played":82,
+				# "point_differential_per_game":"4.8",
+				# "points_allowed_per_game":"97.4",
+				"points_for": pf,
+				"points_against": pa,
+				"net_pts": net_pts,
+				# "touchdowns": td,
+				# "point_differential":390,
+				# "points_scored_per_game":"102.2",
+				"home_won": home_w,
+				"home_lost":home_l,
+				"away_won":away_w,
+				"away_lost":away_l,
+				"conference_won": conf_w,
+				"conference_lost": conf_l,
+				"division_won": div_w,
+				"division_lost": div_l,
+				# "last_ten":"4-6",
+				"last_five": last_five,
+				"streak": streak,
+				"streak_total":streak[:-1],
+				"streak_type": streak_type
+			}
+			standings['standing'].append(standingObj)
 		#save_result('nfl','standings',None,standings)
+
+		# Sort the standings by win pct
+		standings['standing'] = sorted(standings['standing'], key=lambda k: float(k['win_percentage']), reverse=True ) 
+
 		return standings
 	return None
