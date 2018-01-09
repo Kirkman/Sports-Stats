@@ -1,12 +1,15 @@
 load('sbbsdefs.js');
 load('json-client.js');
 load('frame.js');
+load('tree.js');
 load('js-date-format.js');
 
 // some of the custom functions I'm using
 load(js.exec_dir + "helper-functions.js");
 
 
+// Global sports data cache
+var sportsData = null;
 
 var f = new File(js.exec_dir + "server.ini");
 f.open("r");
@@ -26,6 +29,7 @@ var highCyan = 'HC0';
 var highBlack = 'HK0';
 var highYellowDarkBlue = 'HY4';
 var highWhiteDarkCyan = 'HW6';
+var ansiNormal = '\033[0m';
 
 // CHARACTERS
 var charHorizSingle = ascii(196);
@@ -39,7 +43,7 @@ var frac12 = ascii(171);
 var favorite = 'Spurs';
 
 // Frame for the whole app
-var frame = new Frame(1, 1, 80, 24, 0);
+var frame = new Frame(1, 1, 80, 24, BG_BLACK);
 
 // user settings
 var u = new Object();
@@ -47,29 +51,43 @@ u.favorites = [];
 u.alias = '';
 u.system = '';
 
-
-
-// Get relative dates from JSON database
-function getDates() {
-	try {
-		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
-		var data = jsonClient.read("SPORTSSTATS", "SPORTSSTATS.DATES", 1);
-		if (data === undefined) {
-			debug("JSON client error: jsonClient returned undefined");
-			jsonClient.disconnect();
+var treeFrame, treeSubFrame, tree, subtree;
+var headerFrame, instructFrame, sports;
+// Get data slice by sport, method, and/or date.
+// If sports data has not been loaded from jsonClient, it will fetch and store.
+function getData(sport,method,date) {
+	sport  = sport  || 'mlb';
+	method = method || null;
+	date   = date   || null;
+	if ( !sportsData ) {
+		try {
+			var jsonClient = new JSONClient(serverIni.host, serverIni.port);
+			var data = jsonClient.read("SPORTSSTATS", "SPORTSSTATS", 1);
+			if (data === undefined) {
+				log("SportsStats > JSON client error: jsonClient returned undefined");
+				return false;
+			}
+			else {
+				sportsData = data
+			}
+		}
+		catch(err) {
+			log("SportsStats > JSON client error: " + err)
 			return false;
 		}
-		else {
-			jsonClient.disconnect();
-			return data;
-		}
 	}
-	catch(err) {
-		debug("JSON client error: " + err);
-		return false;
+	if (sport == 'dates') {
+		return sportsData[ sport.toUpperCase() ];
 	}
-}
+	else if (method == 'standings') {
+		return sportsData[ sport.toUpperCase() ][ method.toUpperCase() ];
+	}
+	else {
+		return sportsData[ sport.toUpperCase() ][ date ];
+	}
 
+	return false;
+}
 
 
 
@@ -91,6 +109,8 @@ function cleanName(str,method) {
 			[/^NW$/i, 'Northwest'],
 			[/^SE$/i, 'Southeast'],
 			[/^PAC$/i, 'Pacific'],
+			[/^New York Jets/i, 'NY Jets'],
+			[/^New York Giants/i, 'NY Giants'],
 			[/^Trail Blazers/i, 'TrailBlazers'],
 			[/^Blue Jackets/i, 'BlueJackets']
 		];
@@ -216,13 +236,17 @@ function outputTeam(team,key,sport) {
 
 
 
+
+
+
+
 function chooseSport() {
 	console.clear();
 	frame.cycle();
 	var mysport = '';
 	var byDivision = true;
 
-	var headerFrame = new Frame(1, 1, 80, 3, 0, frame);
+	headerFrame = new Frame(1, 1, 80, 3, BG_BLACK, frame);
 	headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
 	headerFrame.gotoxy(3,2);
 	var sportHeader = "sports stats";
@@ -232,12 +256,11 @@ function chooseSport() {
 	headerFrame.putmsg(highBlack + "by Josh Renaud");
 	headerFrame.draw();
 
-	var instructFrame = new Frame(1, 5, 80, 3, 0, frame);
+	instructFrame = new Frame(1, 5, 80, 3, BG_BLACK, frame);
 	var message = highBlack + '[Arrows]' + lowWhite + ' Navigate   ' + highBlack + '|   [Enter]' + lowWhite + ' Make selection   ' + highBlack + '|   [Q]' + lowWhite + ' Quit';
 	instructFrame.center( message.center(80) );
 	instructFrame.draw();
 
-	var sports = new Object();
 	sports = [
 		{ 
 			'sport' : 'nba',
@@ -245,7 +268,7 @@ function chooseSport() {
 			'unselected' : 'graphics/basketball-gray.bin',
 			'width' : 15,
 			'height' : 10,
-			'frame' : new Frame(2, 6, 15, 10, 0, frame)
+			'frame' : new Frame(2, 6, 15, 10, BG_BLACK, frame)
 		},
 		{ 
 			'sport' : 'mlb',
@@ -253,7 +276,7 @@ function chooseSport() {
 			'unselected' : 'graphics/baseball-gray.bin',
 			'width' : 12,
 			'height' : 10,
-			'frame' : new Frame(19, 6, 12, 10, 0, frame)
+			'frame' : new Frame(19, 6, 12, 10, BG_BLACK, frame)
 		},
 		{ 
 			'sport' : 'nhl',
@@ -261,7 +284,7 @@ function chooseSport() {
 			'unselected' : 'graphics/hockey-puck-gray.bin',
 			'width' : 15,
 			'height' : 10,
-			'frame' : new Frame(34, 6, 15, 10, 0, frame)
+			'frame' : new Frame(34, 6, 15, 10, BG_BLACK, frame)
 		},
 		{ 
 			'sport' : 'nfl',
@@ -269,7 +292,7 @@ function chooseSport() {
 			'unselected' : 'graphics/football-gray.bin',
 			'width' : 27,
 			'height' : 10,
-			'frame' : new Frame(52, 6, 27, 10, 0, frame)
+			'frame' : new Frame(52, 6, 27, 10, BG_BLACK, frame)
 		}
 	];
 
@@ -355,7 +378,7 @@ function chooseSport() {
 	// out a more robust system for figuring out when it's the offseason in
 	// the NFL, etc.
 
-	var datesFromJson = getDates();
+	var datesFromJson = getData('dates');
 
 	// NFL schedules are weekly, not daily
 	if (mysport == 'nfl') {
@@ -396,14 +419,15 @@ function chooseSport() {
 	var optionsY = sports[currentSport]['frame'].y + sports[currentSport]['frame'].height + 1;	
 	var optionsW = sports[currentSport]['frame'].width;
 
-	var optionsFrame = new Frame(optionsX, optionsY, optionsW, 2, 0, frame);
+	treeFrame = new Frame(optionsX, optionsY, optionsW, 5, BG_BLACK, frame);
+	treeSubFrame = new Frame(optionsX, optionsY, optionsW, 5, BG_BLACK, treeFrame);
 
 	// Only show Scores/Schedules option if there are actually dates in the
 	// JSON datastore.
 	if (dates.length > 0) {
 		var options = [
-			{ 'option': 'events', 'name': 'Scores/Schedule' },
-			{ 'option': 'standings', 'name': 'Standings' }
+			{ 'option': 'standings', 'name': 'Standings' },
+			{ 'option': 'events', 'name': 'Scores/Games' }
 		];
 	}
 	else {
@@ -412,198 +436,80 @@ function chooseSport() {
 		];
 	}
 
-	optionsFrame.gotoxy(0,1);
+	tree = new Tree(treeSubFrame);
+	subtree = null;
+	tree.colors.fg = LIGHTGRAY;
+	tree.colors.bg = BG_BLACK;
+	tree.colors.lfg = YELLOW;
+	tree.colors.lbg = BG_BLUE;
+	tree.colors.cfg = YELLOW;
+	tree.colors.cbg = BG_BLUE;
+	tree.colors.tfg = DARKGRAY;
+	tree.colors.xfg = DARKGRAY;
+
 	for (var i=0; i<options.length; i++) {
-		var optionColor = lowWhite;
-		if ( i==0 ) { optionColor = highYellowDarkBlue; }
-		var text = options[i]['name'].center(optionsW);
-		optionsFrame.center(optionColor + text);
-		optionsFrame.crlf();
+		if (i==0) {
+			tree.addItem(options[i]['name'], switcher, mysport, options[i]['option'], byDivision);
+		}
+		if (i==1) {
+			subtree = tree.addTree(options[i]['name']);
+		}
 	}
-	optionsFrame.draw();
+	for (var i=0; i<dates.length; i++) {
+		subtree.addItem(dates[i]['name'], switcher, mysport, 'events', dates[i]['date']);
+	}
+	//if (subtree) ( subtree.open() );
 
-	//message = highBlack + '[' + lowWhite + 'Arrows' + highBlack + ']' + lowWhite + 'Navigate   ' + highBlack + '|   [' + lowWhite + 'Enter' + highBlack + ']' + lowWhite + ' Make selection   ' + highBlack + '|   [' + lowWhite + 'Q'  + highBlack + ']' + lowWhite + 'Quit';
-	//instructFrame.center( message.center(80) );
-	//instructFrame.draw();
+	treeFrame.open();
+	tree.open();
+	treeFrame.draw();
 
-	userInput = '';
-	var currentOption = 0;
-	var prevOption = 0;
-	while( ascii(userInput) != 13 ) {
-		userInput = console.getkey(K_UPPER | K_NOCRLF);
-		if ( userInput == KEY_LEFT || userInput == KEY_RIGHT ||  userInput == KEY_UP || userInput == KEY_DOWN ) {
-			// LEFT
-			if ( userInput == KEY_LEFT || userInput == KEY_UP ) {
-				if ( currentOption != 0 ) { 
-					prevOption = currentOption;
-					currentOption--;
-				}
-				else if ( currentOption == 0 ) {
-					prevOption = currentOption;
-					currentOption = options.length-1;
-				}
-			}
-			// RIGHT
-			else if ( userInput == KEY_RIGHT || userInput == KEY_DOWN ) {
-				if ( currentOption != options.length-1 ) { 
-					prevOption = currentOption;
-					currentOption++;
-				}
-				else if ( currentOption == options.length-1 ) {
-					prevOption = currentOption;
-					currentOption = 0;
-				}
-			}
-			optionsFrame.gotoxy(0,1);
-			for (var i=0; i<options.length; i++) {
-				var optionColor = lowWhite;
-				if ( i==currentOption ) { optionColor = highYellowDarkBlue; }
-				var text = options[i]['name'].center(optionsW);
-				optionsFrame.center(optionColor + text);
-				optionsFrame.crlf();
-			}
-			optionsFrame.draw();
-
-		} // if arrow keys
-		else if ( userInput == "Q" ) {
-			cleanUp();
-			exit();
-		}
-
-	} // end while
-
-	var myoption = options[currentOption]['option'];
-
-	// If scoreboard, then we need to get a date
-	if (myoption == 'events') { 
-		var datesX = optionsFrame.x;
-		var datesY = optionsFrame.y + optionsFrame.height + 1;
-		var datesW = optionsFrame.width;
-		var datesFrame = new Frame( datesX, datesY, datesW, 3, 0, frame );
-
-		datesFrame.gotoxy(0,1);
-		for (var i=0; i<dates.length; i++) {
-			var dateColor = lowWhite;
-			if ( i==0 ) { dateColor = highYellowDarkBlue; }
-			var text = dates[i]['name'].center(datesW);
-			datesFrame.center(dateColor + text);
-			datesFrame.crlf();
-		}
-		datesFrame.draw();
-
-		//message = highBlack + '[' + lowWhite + 'Arrows' + highBlack + ']' + lowWhite + 'Navigate   ' + highBlack + '|   [' + lowWhite + 'Enter' + highBlack + ']' + lowWhite + ' Make selection   ' + highBlack + '|   [' + lowWhite + 'Q'  + highBlack + ']' + lowWhite + 'Quit';
-		//instructFrame.center( message.center(80) );
-		//instructFrame.draw();
-
-		userInput = '';
-		var currentDate = 0;
-		var prevDate = 0;
-		while( ascii(userInput) != 13 ) {
-			userInput = console.getkey(K_UPPER | K_NOCRLF);
-			if ( userInput == KEY_LEFT || userInput == KEY_RIGHT ||  userInput == KEY_UP || userInput == KEY_DOWN ) {
-				// LEFT
-				if ( userInput == KEY_LEFT || userInput == KEY_UP ) {
-					if ( currentDate != 0 ) { 
-						prevDate = currentDate;
-						currentDate--;
-					}
-					else if ( currentDate == 0 ) {
-						prevDate = currentDate;
-						currentDate = dates.length-1;
-					}
-				}
-				// RIGHT
-				else if ( userInput == KEY_RIGHT || userInput == KEY_DOWN ) {
-					if ( currentDate != dates.length-1 ) { 
-						prevDate = currentDate;
-						currentDate++;
-					}
-					else if ( currentDate == dates.length-1 ) {
-						prevDate = currentDate;
-						currentDate = 0;
-					}
-				}
-				datesFrame.gotoxy(0,1);
-				for (var i=0; i<dates.length; i++) {
-					var dateColor = lowWhite;
-					if ( i==currentDate ) { dateColor = highYellowDarkBlue; }
-					var text = dates[i]['name'].center(datesW);
-					datesFrame.center(dateColor + text);
-					datesFrame.crlf();
-				}
-				datesFrame.draw();
-
-			} // if arrow keys
-			else if ( userInput == "Q" ) {
+	var userInput;
+	while ( !js.terminated ) {
+		userInput = console.inkey(K_NONE, 5);
+		if (userInput) {
+			if ( ascii(userInput) == 27 || userInput.toUpperCase() == 'Q' )  {
+				treeFrame.delete();
+				treeSubFrame.delete();
+				instructFrame.delete();
+				headerFrame.delete();
 				cleanUp();
 				exit();
 			}
-
-		} // end while
-
-		var mydate = dates[currentDate]['date'];
-		datesFrame.delete();
-	} // if myoption == events
-
-
-	for (var i=0; i<sports.length; i++) {
-		sports[i]['frame'].delete();
+			tree.getcmd(userInput);
+			tree.cycle();
+		}
 	}
-
-	optionsFrame.delete();
+	treeFrame.delete();
+	treeSubFrame.delete();
 	instructFrame.delete();
 	headerFrame.delete();
-	
-	if (myoption == 'standings') { displayStandings(mysport,byDivision); }
-	else if (myoption == 'events') { displayScores(mysport,mydate); }
+	cleanUp();
+	exit();
 }
 
 
-/*
-Synchronet constants
-KEY_UP     ='\x1e';     ctrl-^ (up arrow)
-KEY_DOWN   ='\x0a';     ctrl-j (dn arrow)
-KEY_RIGHT  ='\x06';     ctrl-f (rt arrow)
-KEY_LEFT   ='\x1d';     ctrl-] (lf arrow)
-KEY_HOME   ='\x02';     ctrl-b (home)
-KEY_END    ='\x05';     ctrl-e (end)
-KEY_DEL    ='\x7f';     (del)
-*/
+function switcher(sport, option, param) {
+	if (sport && option && param) {
+		frame.invalidate();
+		frame.cycle();
 
-
-
-// Grab the locally-cached stats
-function getStats(sport,method,date) {
-	sport  = sport  || 'mlb';
-	method = method || 'standings';
-	date   = date   || null;
-	if (method == 'standings') {
-		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + method.toUpperCase();
-		//debug(db);
-	}
-	else {
-		var db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + date;
-		//debug(db);
-	}
-
-	try {
-		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
-		var data = jsonClient.read("SPORTSSTATS", db, 1);
-		if (data === undefined) {
-			debug("JSON client error: jsonClient returned undefined");
-			return false;
+		for (var s=0; s<sports.length; s++) {
+			sports[s]['frame'].delete();
 		}
-		else {
-			//debug( JSON.stringify(data, null, 4) )
-			return data;
-		}
-	}
-	catch(err) {
-		debug("JSON client error: " + err);
-		return false;
-	}
+		headerFrame.delete();
+		instructFrame.delete()
+		treeFrame.delete();
+		treeSubFrame.delete();
 
+		tree = null;
+		subtree = null;
+
+		if (option == 'standings') { displayStandings(sport,param); }
+		else if (option == 'events') { displayScores(sport,param); }
+	}
 }
+
 
 
 // ##################################
@@ -628,13 +534,11 @@ function setPreferences() {
 // ##################################
 
 function displayScores(sport,date) {
-	console.clear();
-	frame.cycle();
 	sport = sport || 'mlb';
 	date = date || new Date().format('mmddYYYY');
 	var json;
 
-	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
+	headerFrame = new Frame(1, 1, 80, 2, BG_BLACK, frame);
 	headerFrame.load(js.exec_dir + 'graphics/header-compact2.bin', 80, 1);
 	headerFrame.gotoxy(2,1);
 	var sportHeader = sport + ' scoreboard';
@@ -643,7 +547,7 @@ function displayScores(sport,date) {
 
 	// Display scores
 	var method = "events";
-	var eventsJson = getStats(sport,method,date);
+	var eventsJson = getData(sport,method,date);
 
 	// Make sure we actually got data
 	if (eventsJson) {
@@ -676,7 +580,7 @@ function displayScores(sport,date) {
 
 		// Check if any events are actually scheduled
 		if (eventsJson.event.length < 1) {
-			var instructFrame = new Frame(1, 6, 80, 3, 0, frame);
+			instructFrame = new Frame(1, 6, 80, 3, BG_BLACK, frame);
 			instructFrame.center(lowWhite + 'No games scheduled on this date.');
 			instructFrame.crlf();
 			instructFrame.crlf();
@@ -698,7 +602,7 @@ function displayScores(sport,date) {
 
 			var chunksLen = chunks.length;
 			for (var h=0; h<chunksLen; h++) {
-				var scoreFrame = new Frame(1, 3, 80, 19, 0, frame);
+				var scoreFrame = new Frame(1, 3, 80, 19, BG_BLACK, frame);
 
 				// Iterate over the events in this chunk 
 				var events = chunks[h];
@@ -936,7 +840,7 @@ function displayScores(sport,date) {
 				headerFrame.draw();
 
 				// User prompt
-				var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
+				var promptFrame = new Frame(1, 23, 80, 1, BG_BLACK, frame);
 				if ( h+1 == chunksLen) {
 					promptFrame.center(highCyan + 'Press any key to exit.');				
 					promptFrame.draw();
@@ -946,6 +850,8 @@ function displayScores(sport,date) {
 					promptFrame.draw();
 					console.getkey();
 				}
+				frame.invalidate();
+				frame.cycle();
 				headerFrame.delete();
 				promptFrame.delete();
 				scoreFrame.delete();
@@ -960,12 +866,12 @@ function displayScores(sport,date) {
 	// eventsJson returned as false
 	else {
 		// User prompt
-		var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
+		var promptFrame = new Frame(1, 23, 80, 1, BG_BLACK, frame);
 		promptFrame.center(highCyan + 'There was a problem. Press any key to exit.');				
 		promptFrame.draw();
 		console.getkey();
 		promptFrame.delete();
-		log( 'Sports Stats error: JSON returned false when calling getStats(' + sport + ', ' + method + ', ' + date + ')' );
+		log( 'Sports Stats error: JSON returned false when calling getData(' + sport + ', ' + method + ', ' + date + ')' );
 	}
 
 	// return to main menu
@@ -984,16 +890,13 @@ function displayScores(sport,date) {
 function displayStandings(sport,byDivision) {
 	sport = sport || 'mlb';
 
-	console.clear();
-	frame.cycle();
-
 	var method = "standings";
-	var headerFrame = new Frame(1, 1, 80, 2, 0, frame);
-	var confFrameL = new Frame(1, 3, 39, 21, 0, frame);
-	var confFrameR = new Frame(42, 3, 39, 21, 0, frame);
-	var seperatorFrame = new Frame(40, 3, 2, 21, 0, frame);
+	headerFrame = new Frame(1, 1, 80, 2, BG_BLACK, frame);
+	var confFrameL = new Frame(1, 3, 39, 21, BG_BLACK, frame);
+	var confFrameR = new Frame(42, 3, 39, 21, BG_BLACK, frame);
+	var seperatorFrame = new Frame(40, 3, 2, 21, BG_BLACK, frame);
 
-	var json = getStats(sport, method);
+	var json = getData(sport, method);
 	if (json) {
 
 		statDate = json['standings_date'].split('T')[0];
@@ -1074,15 +977,17 @@ function displayStandings(sport,byDivision) {
 	// json returned as false
 	else {
 		// User prompt
-		var promptFrame = new Frame(1, 23, 80, 1, 0, frame);
+		var promptFrame = new Frame(1, 23, 80, 1, BG_BLACK, frame);
 		promptFrame.center(highCyan + 'There was a problem. Press any key to exit.');				
 		promptFrame.draw();
 		console.getkey();
 		promptFrame.delete();
-		log( 'Sports Stats error: JSON returned false when calling getStats(' + sport + ', ' + method + ')' );
+		log( 'Sports Stats error: JSON returned false when calling getData(' + sport + ', ' + method + ')' );
 	}
 
 	console.getkey();
+	frame.invalidate();
+	frame.cycle();
 	headerFrame.delete();
 	confFrameL.delete();
 	confFrameR.delete();
@@ -1149,39 +1054,6 @@ function initUser() {
 
 
 
-
-// =============================================================================
-//
-// REVISE THE FUNCTION BELOW TO MAKE IT WRITE FAVORITE TEAMS, RATHER THAN SCORES
-//
-// =============================================================================
-
-function updateScoreList(finalScore) {
-	// If the user's new score is greater than all-time score,
-	// overwrite his entry in the scorelist.
-	var f = new File(js.exec_dir + "server.ini");
-	f.open("r");
-	serverIni = f.iniGetObject();
-	f.close();
-	try {
-		var jsonClient = new JSONClient(serverIni.host, serverIni.port);
-		var userList = jsonClient.read("SPORTSSTATS", "SPORTSSTATS.PLAYERS", 1);
-		if (userList !== undefined) {
-			// Look for user's entry in the list.
-			for (var i=0; i<userList.length; i++) {
-				if (userList[i].name == user.alias) {
-					userList[i].highscore = finalScore;
-				}
-			}
-		}
-		jsonClient.write("SPORTSSTATS", "SPORTSSTATS.PLAYERS", userList, 2);
-	} catch(err) {
-		console.write(LOG_ERR, "JSON client error: " + err);
-		return false;
-	}
-	jsonClient.disconnect();
-}
-
 var cleanUp = function() {
 	frame.close();
 	console.clear();
@@ -1191,11 +1063,8 @@ var cleanUp = function() {
 
 
 
-
-
 // If it's a returning user, populate the user variable. If new, add to JSON DB
 initUser();
-//debug(JSON.stringify(u, null, 4));
 
 // This launches the app
 chooseSport();
