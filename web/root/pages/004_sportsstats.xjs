@@ -8,6 +8,9 @@
 	load('json-client.js');
 
 
+	var sportsData = null;
+
+
 	// Get distinct values from an array of objects
 	// http://stackoverflow.com/questions/15125920/how-to-get-distinct-values-from-an-array-of-objects-in-javascript
 	function uniqueBy(arr, fn) {
@@ -123,32 +126,34 @@
 		method = method || null;
 		date   = date   || null;
 		var db = '';
-		if (sport == 'dates') {
-			db = 'SPORTSSTATS' + "." + sport.toUpperCase();
-		}
-		else if (method == 'standings') {
-			db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + method.toUpperCase();
-		}
-		else {
-			db = 'SPORTSSTATS' + "." + sport.toUpperCase() + "." + date;
-		}
-
-		try {
-			var jsonClient = new JSONClient("guardian.synchro.net", "10088");
-			var data = jsonClient.read("SPORTSSTATS", db, 1);
-			if (data === undefined) {
-				log("SportsStats > JSON client error: jsonClient returned undefined");
+		if ( !sportsData ) {
+			try {
+				var jsonClient = new JSONClient("localhost", "10088");
+				var data = jsonClient.read("SPORTSSTATS", "SPORTSSTATS", 1);
+				if (data === undefined) {
+					log("SportsStats > JSON client error: jsonClient returned undefined");
+					return false;
+				}
+				else {
+					sportsData = data
+				}
+			}
+			catch(err) {
+				log("SportsStats > JSON client error: " + err)
 				return false;
 			}
-			else {
-				return data;
-			}
-		}
-		catch(err) {
-			log("SportsStats > JSON client error: " + err)
-			return false;
 		}
 
+		if (sport == 'dates') {
+			return sportsData[ sport.toUpperCase() ];
+		}
+		else if (method == 'standings') {
+			return sportsData[ sport.toUpperCase() ][ method.toUpperCase() ];
+		}
+		else {
+			return sportsData[ sport.toUpperCase() ][ date ];
+		}
+		return false;
 	}
 
 	function renderStats() {
