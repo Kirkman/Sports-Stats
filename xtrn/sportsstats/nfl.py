@@ -351,7 +351,7 @@ def scrapeStandings(offseasonFlag=False):
 		lastDate = datetime.datetime.strptime(lastGame[0:8], '%Y%m%d')
 		eventsDate = lastDate.strftime('%Y-%m-%dT%H:%M:%S-06:00')
 		prevSeason = str( int( lastGame[0:4] ) - 1 )
-		standingsUrl = standingsUrl + '?category=div&season=' + prevSeason + '-REG'
+		standingsUrl = standingsUrl + '/division/' + prevSeason + '/REG'
 
 	# Otherwise just use today's date.
 	else:
@@ -417,14 +417,19 @@ def scrapeStandings(offseasonFlag=False):
 			streak = team['overallStreak']
 			last_five = str(team['last5Win']) + '-' + str(team['last5Loss']) + '-' + str(team['last5Tie'])
 
-			streak_type = None
-			if streak[-1:] == 'L':
-				streak_type = 'loss'
-			elif streak[-1:] == 'W':
-				streak_type = 'win'
-			# Change 2W to W2
-			streak = re.sub(r'(\d+)(\w)',r'\2\1',streak)
+			streak_type = ''
+			streak_total = ''
 
+			if streak > '':
+				streak_total = streak[:-1]
+				if streak[-1:] == 'L':
+					streak_type = 'loss'
+				elif streak[-1:] == 'W':
+					streak_type = 'win'
+				# Change 2W to W2
+				streak = re.sub(r'(\d+)(\w)',r'\2\1',streak)
+			else:
+				streak = ''
 
 			standingObj = {
 				# "team_id":"miami-heat",
@@ -460,7 +465,7 @@ def scrapeStandings(offseasonFlag=False):
 				# "last_ten":"4-6",
 				"last_five": last_five,
 				"streak": streak,
-				"streak_total":streak[:-1],
+				"streak_total": streak_total,
 				"streak_type": streak_type
 			}
 			standings['standing'].append(standingObj)
