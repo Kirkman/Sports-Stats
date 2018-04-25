@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Jan 9, 2018               #
+#        date: Apr 25, 2018              #
 #                                        #
 ##########################################
 
@@ -105,6 +105,11 @@ but if you want to double-check:
 ==========================================
 
 RELEASE NOTES:
+
+v0.7.4:
+* Update NFL and NHL scrapers
+* Add Vegas Golden Knights
+* Fix problem displaying standings by conference
 
 v0.7.3:
 * Change web client to make one main JSON data request per page.

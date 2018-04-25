@@ -12,7 +12,16 @@ Sysops are encouraged to connect to my Sports Stats JSON service to obtain the s
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
+v0.7.4:
+---------------
+
+* Update NFL and NHL scrapers
+* Add Vegas Golden Knights
+* Fix problem displaying standings by conference
+
 v0.7.3:
+---------------
+
 * Change web client to make one main JSON data request per page.
   I'm asking that sysops only allow logged-in web users to see Sports Stats.
   (See revised web v4 installation instructions in `readme.txt`)
