@@ -39,6 +39,7 @@ nhlTeamNames = [
 	{'abbrev':'TBL','city':'Tampa','team':'Lightning','full':'Tampa Bay Lightning','alternates':[],'site':'Amalie Arena'},
 	{'abbrev':'TOR','city':'Toronto','team':'Maple Leafs','full':'Toronto Maple Leafs','alternates':[],'site':'Air Canada Centre'},
 	{'abbrev':'VAN','city':'Vancouver','team':'Canucks','full':'Vancouver Canucks','alternates':[],'site':'Rogers Arena'},
+	{'abbrev':'VGK','city':'Vegas','team':'Golden Knights','full':'Vegas Golden Knights','alternates':[],'site':'T-Mobile Arena'},
 	{'abbrev':'WPG','city':'Winnipeg','team':'Jets','full':'Winnipeg Jets','alternates':[],'site':'MTS Centre'},
 	{'abbrev':'WSH','city':'Washington','team':'Capitals','full':'Washington Capitals','alternates':[],'site':'Verizon Center'},
 ]
@@ -178,9 +179,15 @@ def scrapeGames(scrapeDate):
 
 					# OLD METHOD: Get stadium name of home team
 					#stadium = getTeamStadium( home,nhlTeamNames )
+
 					# NEW METHOD: Take venue information directly from JSON.
 					# More accurate, and stays correct even at neutral sites.
-					stadium = game['venue']['name']
+					# However, there has been at least one instance where the venue object came over WITHOUT a name field. Ugh. So use old method as fallback.
+
+					if 'venue' in game and 'name' in game['venue']:
+						stadium = game['venue']['name']
+					else:
+						stadium = getTeamStadium( home, nhlTeamNames )
 
 					# Get timezone offset
 					startDateTime = arrow.get( startDateTime ).to('US/Central').isoformat()
