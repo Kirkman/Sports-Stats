@@ -112,6 +112,7 @@ function cleanName(str,method) {
 			[/^New York Jets/i, 'NY Jets'],
 			[/^New York Giants/i, 'NY Giants'],
 			[/^Trail Blazers/i, 'TrailBlazers'],
+			[/^Golden Knights/i, 'G. Knights'],
 			[/^Blue Jackets/i, 'BlueJackets']
 		];
 	}
@@ -490,7 +491,7 @@ function chooseSport() {
 
 
 function switcher(sport, option, param) {
-	if (sport && option && param) {
+	if (typeof sport != undefined && typeof option != undefined && typeof param != undefined ) {
 		frame.invalidate();
 		frame.cycle();
 
@@ -955,6 +956,10 @@ function displayStandings(sport,byDivision) {
 				for (var j=0; j<thisConfStandings.length; j++) {
 					thisFrame.putmsg( outputTeam(thisConfStandings[j],j,sport) );
 					thisFrame.crlf();
+					if (j==7) {
+						thisFrame.putmsg( highBlack + ''.ljust('39',charHorizSingle) );
+						thisFrame.crlf();
+					}
 				} // key in divStandings for loop
 			} // else byDivision
 		} // conferences for loop
