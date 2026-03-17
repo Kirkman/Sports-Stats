@@ -260,7 +260,7 @@ def get_events(sport, league, date):
 						'last_name': competitor['team']['name'],
 						'full_name': competitor['team']['displayName']
 					},
-					f'{c_type}_period_scores': [x['value'] for x in competitor['linescores']] if 'linescores' in competitor else []
+					f'{c_type}_period_scores': [int(x['value']) for x in competitor['linescores']] if 'linescores' in competitor else []
 				})
 			new_events.append(event_data)
 
