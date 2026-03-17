@@ -1,26 +1,27 @@
 #!/usr/bin/python
 
 import sys
-from StringIO import StringIO
 import urllib
-import urllib2
+import urllib.request
+import urllib.error
+import io
 import gzip
 import json
 import datetime
 import time
 import os
 import shutil
-from subprocess32 import call
+from subprocess import call
 from configparser import ConfigParser
 from refresh_xmlstats_token import refreshToken
 #######################################################
 ###  NFL/NHL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
 #######################################################
-import nfl
+#import nfl
+#import nflgame
+#import nflgame.update_sched
 import nhl
-import nflgame
-import nflgame.update_sched
 ### END NFL/NHL SPECIFIC ##################################
 
 # the following code patches a weird JSON float conversion quirk. 
@@ -54,6 +55,9 @@ tomorrow = datetime.date.fromordinal(datetime.date.today().toordinal()+1).strfti
 dates = [tomorrow,today,yesterday]
 
 
+""" 2021-02: REMOVING NFL STUFF BECAUSE NFLGAME DOESN'T WORK ANYMORE. MIGHT NEED TO WRITE MY OWN SCRAPER """
+
+"""
 #######################################################
 ###  NFL SPECIFIC SECTION
 ###  If XML stats ever adds football, then delete this
@@ -62,7 +66,7 @@ dates = [tomorrow,today,yesterday]
 thisYear, thisWeek = nflgame.live.current_year_and_week()
 
 # In the offseason, don't bother calculating
-print today[4:]
+print(today[4:])
 if today[4:] > '0207' and today[4:] < '0801':
 	thisPhase = 'POST'
 	thisWeek = 26
@@ -70,8 +74,8 @@ if today[4:] > '0207' and today[4:] < '0801':
 else:
 	# Get the current season phase ('PRE', 'REG', or 'POST')
 	thisPhase = nflgame.live._cur_season_phase
-	print 'thisYear: ' + str(thisYear)  + ' | thisWeek: ' + str(thisWeek) + ' | thisPhase: '+ str(thisPhase)
-	print today[4:]
+	print('thisYear: ' + str(thisYear)  + ' | thisWeek: ' + str(thisWeek) + ' | thisPhase: '+ str(thisPhase))
+	print(today[4:])
 
 	# CALCULATE NEW WEEK NUMBER!
 	# e.g. if we're in postseason, change the week number from '1' to '22'
@@ -151,7 +155,7 @@ if thisWeek:
 		weeks.append( { 'num': nextWeek, 'date': str(thisYear) + str(nextWeek).zfill(2), 'season': 'POST', 'relative': 'nextweek'} )
 	# After the Super Bowl
 	elif thisWeek > 25 and today[4:] > 0207:
-		print 'AFTER SUPER BOWL'
+		print('AFTER SUPER BOWL')
 		lastWeek = thisWeek - 1
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'lastweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'thisweek'} )
@@ -163,13 +167,13 @@ if thisWeek:
 		weeks.append( { 'num': thisWeek, 'date': str(thisYear) + str(thisWeek).zfill(2), 'season': 'POST', 'relative': 'thisweek'} )
 		weeks.append( { 'num': None, 'date': None, 'season': None, 'relative': 'nextweek'} )
 	else:
-		print "DIDN'T WORK"
-		print thisWeek
+		print("DIDN'T WORK")
+		print(thisWeek)
 		
-	print weeks
+	print(weeks)
 
 ### END NFL SPECIFIC ##################################
-
+"""
 
 
 
@@ -205,7 +209,7 @@ def getStats(sport=None, method=None, date=None, id=None):
 	# Pass method, format, and parameters to build request url
 	url = build_url(host, sport, method, id, format, parameters)
 
-	req = urllib2.Request(url)
+	req = urllib.request.Request(url)
 	# Set Authorization header
 	req.add_header('Authorization', 'Bearer ' + access_token)
 	# Set user agent
@@ -217,27 +221,27 @@ def getStats(sport=None, method=None, date=None, id=None):
 	#time.sleep(11)
 	# The delay can be shorter since we no longer request every box score
 	time.sleep(2)
-	print url
+	print(url)
 
 	try:
-		response = urllib2.urlopen(req)
-	except urllib2.HTTPError, err:
-		print 'HTTPError retrieving file: {0}'.format(err.code)
+		response = urllib.request.urlopen(req)
+	except urllib.error.HTTPError as err:
+		print('HTTPError retrieving file: {0}'.format(err.code))
 		return False
 		#sys.exit(1)
-	except urllib2.URLError, err:
-		print 'URLError retrieving file: {0}'.format(err.reason)
+	except urllib.error.URLError as err:
+		print('URLError retrieving file: {0}'.format(err.reason))
 		return False
 		#sys.exit(1)
 	except Exception:
 		import traceback
-		print 'Exception: {0}'.format( traceback.format_exc() )
+		print('Exception: {0}'.format( traceback.format_exc() ))
 		return False
 
 
 	data = None
 	if 'gzip' == response.info().get('Content-encoding'):
-		buf = StringIO(response.read())
+		buf = io.BytesIO(response.read())
 		f = gzip.GzipFile(fileobj=buf)
 		data = f.read()
 	else:
@@ -267,10 +271,10 @@ def save_result(mysport,method,date,data):
 
 def main(mysport,date):
 	# grab today events
-	print "================================================="
-	print "Getting " + mysport + " on " + date
+	print("=================================================")
+	print("Getting " + mysport + " on " + date)
 	eventsJson = getStats(mysport, 'events', date)
-	print eventsJson
+	print(eventsJson)
 	if eventsJson:
 		events = json.loads(eventsJson)
 		return events
@@ -278,7 +282,7 @@ def main(mysport,date):
 
 
 def cleanup(dates):
-	print dates
+	print(dates)
 	# dates is a list of dirs/dates that should not be deleted
 	for root, dirs, files in os.walk( exec_dir + 'cache/' ):
 		for dir in dirs:
@@ -286,7 +290,7 @@ def cleanup(dates):
 				# do nothing
 				pass
 			else:
-				print 'deleted: ' + dir
+				print('deleted: ' + dir)
 				shutil.rmtree( root + dir )
 
 
@@ -296,13 +300,14 @@ if __name__ == '__main__':
 	# If today's date is after the XMLStats token expiration date,
 	# then we need to go to the website and refresh the token
 	if today_datetime > token_expire_datetime:
-		print 'TOKEN IS OUT OF DATE'
+		print('TOKEN IS OUT OF DATE')
 		refreshToken()
 	else:
-		print 'TOKEN IS OKAY'
+		print('TOKEN IS OKAY')
 
 	statsObject['SPORTSSTATS']['DATES'] = {}
 
+	"""
 	#######################################################
 	###  NFL SPECIFIC SECTION
 	###  If XML stats ever adds football, then replace the 
@@ -327,7 +332,7 @@ if __name__ == '__main__':
 				statsObject['SPORTSSTATS']['DATES'][theRelative] = None
 			# Otherwise, grab things as normal
 			else:
-				print 'GRABBING YEAR: ' +str(thisYear) + ' | WEEK: ' + str(week['num']) + ' | SEASON: ' + str(week['season'])
+				print('GRABBING YEAR: ' +str(thisYear) + ' | WEEK: ' + str(week['num']) + ' | SEASON: ' + str(week['season']))
 				theEvents = nfl.parseSchedule(thisYear, week['num'], week['season'])
 
 				# Add events to global stats object
@@ -345,7 +350,7 @@ if __name__ == '__main__':
 	statsObject['SPORTSSTATS']['NFL']['STANDINGS'] = theStandings
 
 	### END NFL SPECIFIC ##################################
-
+	"""
 
 
 	#######################################################

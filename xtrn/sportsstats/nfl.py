@@ -101,15 +101,15 @@ def scrape(url=None):
 
 	# add delay so we don't surpass API rate limit
 	#time.sleep(15)
-	print url
+	print(url)
 
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, err:
-		print 'Error retrieving file: {0}'.format(err.code)
+		print('Error retrieving file: {0}'.format(err.code))
 		sys.exit(1)
 	except urllib2.URLError, err:
-		print 'Error retrieving file: {0}'.format(err.reason)
+		print('Error retrieving file: {0}'.format(err.reason))
 		sys.exit(1)
 
 	data = None
@@ -141,7 +141,7 @@ def parseSchedule(year, week, season):
 	# So, we'll use try/except to catch problems.
 	try:
 		games_played = nflgame.games(year, week=theweek, kind=season)
-		print games_played
+		print(games_played)
 	# If there was an exception, let's try to update the schedule
 	# Unfortunately, update_sched.py was designed to be run from the command line
 	# and requires command line arguments for this update procedure. 
@@ -153,16 +153,16 @@ def parseSchedule(year, week, season):
 		# invoke `python {pythonpath}/site-packages/nflgame/update_sched.py --year 2017`
 		os.system('python ' + us_path + ' --year ' + str(year) )
 		# wait 1 minute for the update
-		print 'sleeping for 1 minute'
+		print('sleeping for 1 minute')
 		time.sleep(60)
-		print 'finished sleeping'
+		print('finished sleeping')
 		# Try fetching games_played again. Hopefully it works.
 		games_played = nflgame.games(year, week=theweek, kind=season)
-		print games_played
+		print(games_played)
 
 
 	games_sked = nflgame.update_sched.week_schedule(year, season, theweek)
-	print games_sked
+	print(games_sked)
 
 	events = {
 		"events_date": None, 
@@ -198,8 +198,8 @@ def parseSchedule(year, week, season):
 		eventId = eventId + '-' + awayCity.lower().replace('.','') + '-' + awayTeam.lower()
 		eventId = eventId + '-at-' + homeCity.lower().replace('.','') + '-' + homeTeam.lower()
 		eventId = eventId.replace(' ','-')
-		#print eventsDate
-		#print eventsDateTime
+		#print(eventsDate)
+		#print(eventsDateTime)
 		if season == 'REG':
 			seasonType = 'regular'
 		elif season == 'POST':
@@ -259,8 +259,8 @@ def parseSchedule(year, week, season):
 			awayScore = g.score_away
 
 			#print('-'*30)
-			#print homeTeam, awayScoresByPeriod, str(homeScore)
-			#print awayTeam, homeScoresByPeriod, str(awayScore)
+			#print(homeTeam, awayScoresByPeriod, str(homeScore))
+			#print(awayTeam, homeScoresByPeriod, str(awayScore))
 
 			eventObj.update({
 				"away_period_scores": awayScoresByPeriod,
@@ -308,17 +308,17 @@ def parseSchedule(year, week, season):
 			min = int(timeParts[1])
 			d = datetime.datetime( s['year'], s['month'], s['day'], hour, min )
 			datestamp = d.strftime("%Y-%m-%dT%H:%M:%S")
-			#print datestamp
-			#print awayTeam + ' at ' + homeTeam
-			#print s['time'] + ' ' + s['wday']
+			#print(datestamp)
+			#print(awayTeam + ' at ' + homeTeam)
+			#print(s['time'] + ' ' + s['wday'])
 
-		#print s['gamekey']
+		#print(s['gamekey'])
 		events['event'].append(eventObj)
 
 
 	#print('-'*30)
 
-	#print events
+	#print(events)
 	date = str(year) + str(week).zfill(2)
 	# save results into separate event file
 	#save_result('nfl','events',date,events)
@@ -379,7 +379,7 @@ def scrapeStandings(offseasonFlag=False):
 
 		# loop through every team in the option list
 		for team in standings_src['instance']['teamRecords']:
-			print team
+			print(team)
 
 			thisConference = team['conference']
 			if 'american' in thisConference.lower():

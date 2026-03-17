@@ -80,7 +80,7 @@ def scrape(url=None):
 	if url is None:
 		return False
 
-	req = urllib2.Request(url)
+	req = urllib.request.Request(url)
 	# Set user agent
 	req.add_header('User-agent', 'guardian-of-forever/1.0')
 	# Tell server we can handle gzipped content
@@ -88,20 +88,19 @@ def scrape(url=None):
 
 	# add delay so we don't surpass API rate limit
 	#time.sleep(15)
-	print url
+	print(url)
 
 	try:
-		response = urllib2.urlopen(req)
-	except urllib2.HTTPError, err:
-		print 'Error retrieving file: {0}'.format(err.code)
+		response = urllib.request.urlopen(req)
+	except urllib.error.HTTPError as err:
+		print('Error retrieving file: {0}'.format(err.code))
 		sys.exit(1)
-	except urllib2.URLError, err:
-		print 'Error retrieving file: {0}'.format(err.reason)
+	except urllib.error.URLError as err:
+		print('Error retrieving file: {0}'.format(err.reason))
 		sys.exit(1)
-
 	data = None
 	if 'gzip' == response.info().get('Content-encoding'):
-		buf = StringIO(response.read())
+		buf = io.BytesIO(response.read())
 		f = gzip.GzipFile(fileobj=buf)
 		data = f.read()
 	else:
@@ -151,7 +150,7 @@ def scrapeGames(scrapeDate):
 					if 'final' in status.lower():
 						eventStatus = 'final'
 						startDateTime = game['gameDate']
-						#print 'COMPLETED'
+						#print('COMPLETED')
 					# If this a game preview?
 					elif 'scheduled' in status.lower():
 						eventStatus = 'scheduled'
@@ -195,8 +194,8 @@ def scrapeGames(scrapeDate):
 					eventId = scrapeDate + '-' + awayCity.lower().replace('.','') + '-' + awayTeam.lower()
 					eventId = eventId + '-at-' + homeCity.lower().replace('.','') + '-' + homeTeam.lower()
 					eventId = eventId.replace(' ','-')
-					#print startDateTime
-					#print eventId
+					#print(startDateTime)
+					#print(eventId)
 
 					eventObj = {
 						"start_date_time": startDateTime, 
@@ -221,7 +220,7 @@ def scrapeGames(scrapeDate):
 						}, 
 						"sport": "NHL"
 					}
-					print eventObj
+					print(eventObj)
 
 					if eventStatus == 'final':
 
@@ -243,8 +242,8 @@ def scrapeGames(scrapeDate):
 
 
 						print('-'*30)
-						print homeTeam, awayScoresByPeriod, str(homeScore) 
-						print awayTeam, homeScoresByPeriod, str(awayScore) 
+						print(homeTeam, awayScoresByPeriod, str(homeScore) )
+						print(awayTeam, homeScoresByPeriod, str(awayScore) )
 
 						eventObj.update({
 							"away_period_scores": awayScoresByPeriod, 
@@ -262,13 +261,13 @@ def scrapeGames(scrapeDate):
 
 
 
-					#print s['gamekey']
+					#print(s['gamekey'])
 					events['event'].append(eventObj)
 
 
 				#print('-'*30)
 
-				#print events
+				#print(events)
 				#date = str(year) + str(week).zfill(2)
 				# save results into separate event file
 				#save_result('nhl','events',date,events)
@@ -330,9 +329,14 @@ def scrapeStandings():
 				home = str(team['records']['overallRecords'][0]['wins']) + '-' + str(team['records']['overallRecords'][0]['losses']) + '-' + str(team['records']['overallRecords'][0]['ot'])
 				away = str(team['records']['overallRecords'][1]['wins']) + '-' + str(team['records']['overallRecords'][1]['losses']) + '-' + str(team['records']['overallRecords'][1]['ot'])
 				last_ten = str(team['records']['overallRecords'][3]['wins']) + '-' + str(team['records']['overallRecords'][3]['losses']) + '-' + str(team['records']['overallRecords'][3]['ot'])
-				streak = team['streak']['streakCode']
-				streak_num = team['streak']['streakNumber']
-				streak_type = team['streak']['streakType']
+				if 'streak' in team:
+					streak = team['streak']['streakCode']
+					streak_num = team['streak']['streakNumber']
+					streak_type = team['streak']['streakType']
+				else:
+					streak = None
+					streak_num = None
+					streak_type = None
 
 				standingObj = {
 					#"team_id":"miami-heat",

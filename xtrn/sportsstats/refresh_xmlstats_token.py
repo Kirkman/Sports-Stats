@@ -1,5 +1,5 @@
 import mechanize
-import cookielib
+import http
 from configparser import ConfigParser
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -21,7 +21,7 @@ def refreshToken():
 	br = mechanize.Browser()
 
 	# Cookie Jar
-	cj = cookielib.LWPCookieJar()
+	cj = http.cookiejar.CookieJar()
 	br.set_cookiejar(cj)
 
 	# Browser options
@@ -38,11 +38,11 @@ def refreshToken():
 	try:
 		br.open('https://erikberg.com/signin')
 	except (mechanize.HTTPError,mechanize.URLError) as e:
-		if isinstance(e,mechanize.HTTPError):
-			print e
-			print e.code
+		if isinstance(e, mechanize.HTTPError):
+			print(e)
+			print(e.code)
 		else:
-			print e.reason.args
+			print(e.reason.args)
 		exit()
 
 	# Select the second (index one) form (the first form is a search query box)
@@ -62,10 +62,10 @@ def refreshToken():
 		tokenpage = br.open('https://erikberg.com/account/token').read()
 	except (mechanize.HTTPError,mechanize.URLError) as e:
 		if isinstance(e,mechanize.HTTPError):
-			print e
-			print e.code
+			print(e)
+			print(e.code)
 		else:
-			print e.reason.args
+			print(e.reason.args)
 		exit()
 
 	# If we successfully loaded the page
@@ -75,9 +75,9 @@ def refreshToken():
 		# Find the token reset form
 		control = br.form.find_control("accessToken")
 		if control:
-			print control
-			print control.name
-			print control.value
+			print(control)
+			print(control.name)
+			print(control.value)
 			if control.value != token:
 				# Store new token in our config object
 				config.set('DEFAULT', 'token', control.value)
@@ -100,7 +100,7 @@ def refreshToken():
 									exp = divText.replace( labelText, '' )
 									exp = re.sub( r' -\d\d00', '', exp )
 									exp = exp.strip()
-									print exp
+									print(exp)
 									# Store new expiration date in our config object
 									config.set('DEFAULT', 'expiration', exp)
 									# Write new expiration date into our XMLStats INI file
