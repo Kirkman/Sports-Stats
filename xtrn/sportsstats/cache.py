@@ -14,17 +14,6 @@ import os
 import sys
 import shutil
 from subprocess import call
-from configparser import ConfigParser
-# from refresh_xmlstats_token import refreshToken
-#######################################################
-###  NFL/NHL SPECIFIC SECTION
-###  If XML stats ever adds football, then delete this
-#######################################################
-#import nfl
-#import nflgame
-#import nflgame.update_sched
-# import nhl
-### END NFL/NHL SPECIFIC ##################################
 
 # the following code patches a weird JSON float conversion quirk. 
 # from http://stackoverflow.com/a/1447581/566307
@@ -47,8 +36,6 @@ def log(message, newlines=True):
 			sys.stdout.flush()
 
 
-
-
 def cleanup(dates):
 	log(dates)
 	# dates is a list of dirs/dates that should not be deleted
@@ -61,11 +48,10 @@ def cleanup(dates):
 				log('deleted: ' + dir)
 				shutil.rmtree( root + dir )
 
-
-
-# See https://erikberg.com/api/methods Request URL Convention for
-# an explanation
-def build_url(base_url, sport, league, method, id, parameters):
+# ESPN URLs follow patterns explained here:
+# https://github.com/pseudo-r/Public-ESPN-API/blob/main/docs/sports/hockey.md
+def build_url(sport, league, method, parameters):
+	base_url = 'https://site.api.espn.com/apis/site/v2/sports'
 	path = ''
 	if method == 'scoreboard':
 		path = '/'.join(filter(None, (sport, league, method)));
@@ -75,38 +61,15 @@ def build_url(base_url, sport, league, method, id, parameters):
 		url = url + '?' + paramstring
 	return url
 
-def get_stats(sport=None, league=None, method=None, date=None, _id=None):
-	log([sport, league, method, date, _id])
 
-	if sport is None:
-		sport = 'baseball'
-	if league is None:
-		league = 'mlb'
-	if method is None:
-		method = 'scoreboard'
-	if date is None:
-		date = today
-
-	# set the API method, format, and any parameters
-	base_url = 'https://site.api.espn.com/apis/site/v2/sports/'
-	parameters = {
-		'dates': date
-	}
-
-	# Pass method, format, and parameters to build request url
-	url = build_url(base_url, sport, league, method, _id, parameters)
-
+def fetch(url):
 	req = urllib.request.Request(url)
-	# # Set Authorization header
-	# req.add_header('Authorization', 'Bearer ' + access_token)
 	# Set user agent
 	req.add_header('User-agent', user_agent)
 	# Tell server we can handle gzipped content
 	req.add_header('Accept-encoding', 'gzip')
 
-	# add delay so we don't surpass API rate limit
-	#time.sleep(11)
-	# The delay can be shorter since we no longer request every box score
+	# Add delay so we don't abuse the API.
 	time.sleep(2)
 	log(url)
 
@@ -132,11 +95,115 @@ def get_stats(sport=None, league=None, method=None, date=None, _id=None):
 		data = f.read()
 	else:
 		data = response.read()
+
 	if data:
+		data = json.loads(data)
 		return data
-	else:
+
+	return False
+
+
+
+
+
+def get_standings(sport=None, league=None):
+	log('=================================================')
+	log(f'Getting standings for {league}')
+	log([sport, league])
+
+	if sport is None:
+		sport = 'baseball'
+	if league is None:
+		league = 'mlb'
+
+	url = f'https://site.web.api.espn.com/apis/v2/sports/{sport}/{league}/standings?type=0&level=3&sort=playoffseed:asc,points:desc,gamesplayed:asc'
+
+	data = fetch(url)
+	if not data:
 		return False
 
+	new_standings = []
+
+	def extract_entries(standings_obj, conf_name, conf_abbr, div_name=None, div_abbr=None):
+		for team in standings_obj['entries']:
+			standing_data = {
+				'abbreviation': team['team']['abbreviation'],
+				'first_name': team['team']['location'],
+				'last_name': team['team']['name'],
+				'full_name': team['team']['displayName'],
+				'conference': conf_abbr,
+				'division': div_abbr,
+			}
+			for stat in team['stats']:
+				key = str(stat['name']).lower()
+
+				# If it's "value", then it's numerical
+				if 'value' in stat:
+					value = float(stat['value'])
+					if isinstance(value, float) and value.is_integer():
+						value = int(value)
+				# It's there's no "value", then it's a string and we need "summary"
+				else:
+					value = stat['summary']
+
+				standing_data[key] = value
+
+			new_standings.append(standing_data)
+
+	for conference in data['children']:
+		if 'children' in conference:
+			for division in conference['children']:
+				extract_entries(
+					division['standings'],
+					conference['name'],
+					conference['abbreviation'],
+					division['name'],
+					division['abbreviation'],
+				)
+		else:
+			extract_entries(
+				conference['standings'],
+				conference['name'],
+				conference['abbreviation'],
+			)
+
+
+	final_standing_obj = {
+		'standings_date': datetime.datetime.now().strftime('%Y-%m-%d'),
+		'standings': new_standings,
+	}
+
+	return final_standing_obj
+
+
+
+
+
+def get_stats(sport=None, league=None, method=None, date=None):
+	log([sport, league, method, date])
+
+	if sport is None:
+		sport = 'baseball'
+	if league is None:
+		league = 'mlb'
+	if method is None:
+		method = 'scoreboard'
+	if date is None:
+		date = today
+
+	# set the API method, format, and any parameters
+	parameters = {
+		'dates': date
+	}
+
+	# Pass method, format, and parameters to build request url
+	url = build_url(sport, league, method, parameters)
+
+	data = fetch(url)
+	if not data:
+		return False
+
+	return data
 
 
 def save_result(league, method, date, data):
@@ -159,14 +226,13 @@ def save_result(league, method, date, data):
 # Fetch and parse all events for specific league on a specific date
 def get_events(sport, league, date):
 	log('=================================================')
-	log(f'Getting {league} on {date}')
+	log(f'Getting events for {league} on {date}')
 
-	data_json = get_stats(sport, league, 'scoreboard', date)
+	data = get_stats(sport, league, 'scoreboard', date)
 
-	if not data_json:
+	if not data:
 		return None
 
-	data = json.loads(data_json)
 	new_events = []
 
 	for event in data['events']:
@@ -198,7 +264,13 @@ def get_events(sport, league, date):
 				})
 			new_events.append(event_data)
 
-	return new_events
+	final_event_obj = {
+		'events_date': datetime.datetime.strptime(date, '%Y%m%d').strftime('%Y-%m-%d'),
+		'events': new_events,
+		'count': len(new_events)
+	}
+
+	return final_event_obj
 
 
 
@@ -212,13 +284,13 @@ if __name__ == '__main__':
 	user_agent = 'guardian-of-forever/1.0 (ssh://guardian.synchro.net)'
 
 	sports = [
-		# {'sport': 'baseball',   'league': 'mlb'},
+		{'sport': 'baseball',   'league': 'mlb'},
 		{'sport': 'hockey',     'league': 'nhl'},
-		# {'sport': 'basketball', 'league': 'nba'},
-		# {'sport': 'football',   'league': 'nfl'},
+		{'sport': 'basketball', 'league': 'nba'},
+		{'sport': 'football',   'league': 'nfl'},
 	]
 
-	statsObject = { 'SPORTSSTATS' : {} }
+	stats_obj = { 'SPORTSSTATS' : {} }
 
 	today_datetime = datetime.datetime.today()
 
@@ -228,48 +300,40 @@ if __name__ == '__main__':
 	tomorrow = datetime.date.fromordinal( datetime.date.today().toordinal() + 1 ).strftime('%Y%m%d')
 	dates = [tomorrow, today, yesterday]
 
-	statsObject['SPORTSSTATS']['DATES'] = {}
+	stats_obj['SPORTSSTATS']['DATES'] = {}
 
 	# Add relative dates
-	statsObject['SPORTSSTATS']['DATES']['yesterday'] = yesterday
-	statsObject['SPORTSSTATS']['DATES']['today'] = today
-	statsObject['SPORTSSTATS']['DATES']['tomorrow'] = tomorrow
+	stats_obj['SPORTSSTATS']['DATES']['yesterday'] = yesterday
+	stats_obj['SPORTSSTATS']['DATES']['today'] = today
+	stats_obj['SPORTSSTATS']['DATES']['tomorrow'] = tomorrow
 
 	for s in sports:
 		sport = s['sport']
 		league = s['league']
 
 		# Add sport to global stats object
-		statsObject['SPORTSSTATS'][league.upper()] = {}
+		stats_obj['SPORTSSTATS'][league.upper()] = {}
 
 		# Grab schedules for yesterday, today, and tomorrow
 		for date in dates:
-			date_fmtd = datetime.datetime.strptime(date, '%Y%m%d').strftime('%Y-%m-%d')
-
 			the_events = None
 			the_events = get_events(sport, league, date)
 
 			# Add this day's events to global stats object
-			statsObject['SPORTSSTATS'][league.upper()][date] = {
-				'events_date': date_fmtd,
-				'events': the_events,
-				'count': len(the_events)
-			}
+			stats_obj['SPORTSSTATS'][league.upper()][date] = the_events
 
-		# # Grab current standings
-		# standingsJson = get_stats(sport, league, 'standings', date)
-		# if standingsJson:
-		# 	theStandings = None
-		# 	theStandings = json.loads(standingsJson)
-		# 	# write standings into an individual json file in /cache/
-		# 	#save_result(mysport,'standings',None,theStandings)
-		# 	# Add standings to global stats object
-		# 	statsObject['SPORTSSTATS'][league.upper()]['STANDINGS'] = theStandings
+		# Grab current standings
+		the_standings = get_standings(sport, league)
+		if the_standings:
+			# write standings into an individual json file in /cache/
+			#save_result(mysport,'standings',None,the_standings)
+			# Add standings to global stats object
+			stats_obj['SPORTSSTATS'][league.upper()]['STANDINGS'] = the_standings
 
 	# save global stats object into Synchronet-style JSON database
 	filename = os.path.join(exec_dir, 'sportsstats.json')
 	with open(filename, 'w') as f:
-		f.write( json.dumps(statsObject) )
+		f.write( json.dumps(stats_obj) )
 
 	# Tell Synchronet to refresh the JSON service
 	call(['/sbbs/exec/jsexec', '/sbbs/xtrn/sportsstats/json-service-refresh.js'])

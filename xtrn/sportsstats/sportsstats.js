@@ -91,7 +91,7 @@ function getData(sport, method, date) {
 
 
 
-function cleanName(str,method) {
+function cleanName(str, method) {
 	method  = method  || 'standings';
 	var replacements = [];
 
@@ -188,38 +188,38 @@ function outputTeam(team,key,sport) {
 	// NFL lacks GB or L10, so replace with PF, PA, and L5.
 	if (sport == 'nfl') {
 		var theName = ' ' + teamName.ljust('11');
-		var theWon  = team.won.toString().rjust('2');
-		var theLost = team.lost.toString().rjust('3');
-		var theTied = team.tied.toString().rjust('3');
-		var thePct  = team.win_percentage.toString().rjust('6');
-		var theGB = team.points_for.toString().rjust('4') + team.points_against.toString().rjust('4');
+		var theWon  = team.wins.toString().rjust('2');
+		var theLost = team.losses.toString().rjust('3');
+		var theTied = team.ties.toString().rjust('3');
+		var thePct  = team.winpercent.toFixed(3).rjust('6');
+		var theGB = team.pointsfor.toString().rjust('4') + team.pointsagainst.toString().rjust('4');
 		var theL10  = team.streak.toString().rjust('4');
 	}
 	else if (sport == 'nhl') {
 		var theName = ' ' + teamName.ljust('11');
-		var theWon  = team.won.toString().rjust('3');
-		var theLost = team.lost.toString().rjust('3');
-		var theTied = team.ot.toString().rjust('3');
+		var theWon  = team.wins.toString().rjust('3');
+		var theLost = team.losses.toString().rjust('3');
+		var theTied = team.overtimelosses.toString().rjust('3');
 		var thePct  = team.points.toString().rjust('4');
-		var theGB = team.goals_for.toString().rjust('4') + team.goals_against.toString().rjust('4');
-		var theL10  = team.last_ten.toString().rjust('6');
+		var theGB = team.pointsfor.toString().rjust('4') + team.pointsagainst.toString().rjust('4');
+		var theL10  = team['last ten games'].toString().rjust('6');
 	}
 
 	else {
 		var theName = ' ' + teamName.ljust('13');
-		var theWon  = team.won.toString().rjust('3');
-		var theLost = team.lost.toString().rjust('5');
+		var theWon  = team.wins.toString().rjust('3');
+		var theLost = team.losses.toString().rjust('5');
 		var theTied = '';
-		var thePct  = team.win_percentage.toString().rjust('6');
-		var gb = team.games_back;
+		var thePct  = team.winpercent.toFixed(3).rjust('6');
+		var gb = team.gamesbehind;
 		if ( !hasDecimal(gb) ) {
-			gb = team.games_back.toString() + ' ';
+			gb = team.gamesbehind.toString() + ' ';
 		}
 		else {
-			gb = team.games_back.toString().replace('.5',frac12);
+			gb = team.gamesbehind.toString().replace('.5',frac12);
 		}
 		var theGB   = gb.rjust('5');
-		var theL10  = team.last_ten.toString().rjust('5');
+		var theL10  = team['last ten games'].toString().rjust('5');
 	}
 
 
@@ -370,6 +370,13 @@ function chooseSport() {
 		// display NBA/NHL conference standings from April-September. 
 		if (month >= 3 && month < 9 ) { byDivision = false; }
 	}
+	else if (mysport == 'mlb') {
+		var d = new Date();
+		var month = d.getMonth();
+		// display MLB standings by conf before April. 
+		if (month >= 1 && month < 4 ) { byDivision = false; }
+	}
+	
 	
 	// GRAB DATES
 	// I moved this higher up, because if there are no dates in the NFL,
@@ -902,7 +909,7 @@ function displayStandings(sport,byDivision) {
 
 		statDate = json['standings_date'].split('T')[0];
 		var statDateObj = new Date( parseDate(statDate) );
-		json = json['standing'];
+		json = json['standings'];
 		
 
 		// Generate a 00:00:00 yesterday object.
@@ -949,7 +956,7 @@ function displayStandings(sport,byDivision) {
 					thisConfStandings = sortByKey(thisConfStandings, 'points');
 				}
 				else {
-					thisConfStandings = sortByKey(thisConfStandings, 'win_percentage');
+					thisConfStandings = sortByKey(thisConfStandings, 'winpercent');
 				}
 				thisFrame.putmsg(highBlack + ''.ljust('39',charHorizSingle) );
 				thisFrame.crlf();
