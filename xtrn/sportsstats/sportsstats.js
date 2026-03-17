@@ -55,7 +55,7 @@ var treeFrame, treeSubFrame, tree, subtree;
 var headerFrame, instructFrame, sports;
 // Get data slice by sport, method, and/or date.
 // If sports data has not been loaded from jsonClient, it will fetch and store.
-function getData(sport,method,date) {
+function getData(sport, method, date) {
 	sport  = sport  || 'mlb';
 	method = method || null;
 	date   = date   || null;
@@ -534,7 +534,7 @@ function setPreferences() {
 // ### 
 // ##################################
 
-function displayScores(sport,date) {
+function displayScores(sport, date) {
 	sport = sport || 'mlb';
 	date = date || new Date().format('mmddYYYY');
 	var json;
@@ -548,7 +548,7 @@ function displayScores(sport,date) {
 
 	// Display scores
 	var method = "events";
-	var eventsJson = getData(sport,method,date);
+	var eventsJson = getData(sport, method, date);
 
 	// Make sure we actually got data
 	if (eventsJson) {
@@ -580,7 +580,7 @@ function displayScores(sport,date) {
 		headerFrame.draw();
 
 		// Check if any events are actually scheduled
-		if (eventsJson.event.length < 1) {
+		if (eventsJson.events.length < 1) {
 			instructFrame = new Frame(1, 6, 80, 3, BG_BLACK, frame);
 			instructFrame.center(lowWhite + 'No games scheduled on this date.');
 			instructFrame.crlf();
@@ -599,7 +599,7 @@ function displayScores(sport,date) {
 			// Whittle down to just the actual event objects.
 			// Then convert the single array into chunks of 8 events,
 			// which is most games we can fit on screen at once
-			var chunks = chunk(eventsJson.event,8);
+			var chunks = chunk(eventsJson.events,8);
 
 			var chunksLen = chunks.length;
 			for (var h=0; h<chunksLen; h++) {
@@ -613,7 +613,7 @@ function displayScores(sport,date) {
 
 					var event = events[i];
 					// display box score
-					if ( event.event_status == "completed" && typeof event['away_period_scores'] !== 'undefined' && event['away_period_scores'].length > 0) {
+					if ( event.event_completed === true && typeof event['away_period_scores'] !== 'undefined' && event['away_period_scores'].length > 0) {
 						// number of periods
 						var len = event['away_period_scores'].length;
 						// default padding between columns
