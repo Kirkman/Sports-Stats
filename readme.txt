@@ -5,7 +5,7 @@
 #                                        #
 #      author: Kirkman                   #
 #       email: josh [] joshrenaud.com    #
-#        date: Apr 25, 2018              #
+#        date: Mar 18, 2026              #
 #                                        #
 ##########################################
 
@@ -106,6 +106,13 @@ but if you want to double-check:
 
 RELEASE NOTES:
 
+v0.8.0
+* Overhaul system for obtaining stats (many years overdue)
+  + Add single script to fetch data from ESPN API
+  + Remove xmlstats and custom NHL/NFL scrapers
+* Update ANSI and web clients to work with revised JSON datastore format.
+* Various display fixes for ANSI and web clients
+
 v0.7.4:
 * Update NFL and NHL scrapers
 * Add Vegas Golden Knights
@@ -126,10 +133,8 @@ v0.7.2:
 * Changed names of several NHL, NFL stadiums
 * Several improvements to display of NFL schedules
 
-
 v0.7.1:
 * Overhauled NHL scraper to grab data from NHL.com's new JSON API
-
 
 v0.7:
 * Developed an Synchronet Web v4-compatible Sports Stats .xjs app. Now your
@@ -142,15 +147,12 @@ v0.7:
   I've changed the repo to mirror SBBS's folder structure in hopes that it will 
   be clearer where all the pieces go.
 
-
 v0.6.3:
 * Added a new Python script to automate the renewal of XMLStats API token.
 * Small change to avoid messing up Date.prototype.
 
-
 v0.6.2: 
 * Updated the NFL scraper to support preseason games and schedules.
-
 
 v0.6.1:
 * Updated the NFL and NHL scrapers to make them compatible with the 
@@ -159,31 +161,26 @@ v0.6.1:
   and fixed display of preseason MLB games related to the xmlstats changes
   described below.
 
-
 v0.6:
 * Version 0.6 makes some back-end changes, and is a mandatory upgrade.
-  cache.py now makes fewer API calls to xmlstats because of a change xmlstats
+* The cache.py script makes fewer API calls because of a change xmlstats
   made to their events JSON. This is a good thing, but requires changes in the
   sportsstats.js client. YOU MUST UPGRADE, or your Sports Stats installation
   will not work.
 * I added code to display NHL and NBA standings by conference instead of
   division once the season reaches March and the playoffs approach.
 
-
 v0.5.1:
 * Patched handling of NFL schedules during the postseason. 
   For now Sports Stats will no longer display the next week/round's schedule 
   during the postseason.
 
-
 v0.5:
 * Added NHL support. Sports Stats now provides data for all four major sports.
-
 
 v0.4:
 * This door displays scores, schedules, and standings for NFL, NBA and MLB.
   NHL support will be added later.
-
 
 Future plans:
 * Pick favorite teams, which will be highlighted in a different color
@@ -211,12 +208,7 @@ ACKNOWLEDGMENTS:
 
 Stats used on this door come from several sources:
 
-* The primary source is Erik Berg's xmlstats service: https://erikberg.com/api
-
-* I use the "nflgame" Python library by burntsushi to obtain game data. 
-
-* I am scraping other NFL information, such as standings and stadiums, 
-from NFL.com. Similarly, I scrape all NHL information from NHL.com.
+* The primary source is ESPN's undocumented public API.
 
 Within the scripts, I am using the js-date-format library by UziTech.
 
