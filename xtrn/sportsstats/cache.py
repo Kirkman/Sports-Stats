@@ -104,7 +104,8 @@ def fetch(url):
 
 
 
-
+def get_datetime(d):
+	return datetime.datetime.strptime(d, '%Y-%m-%dT%H:%MZ')
 
 def get_standings(sport=None, league=None):
 	log('=================================================')
@@ -121,6 +122,24 @@ def get_standings(sport=None, league=None):
 	data = fetch(url)
 	if not data:
 		return False
+
+	# Figure out if sport is in season, and if so, what phase
+	most_recent_season = data['seasons'][0]
+	season_active = False
+	season_phase = 'off'
+
+	today = datetime.datetime.now()
+	print(today, most_recent_season['startDate'], most_recent_season['endDate'])
+	if today >= get_datetime(most_recent_season['startDate']) and today <= get_datetime(most_recent_season['endDate']):
+		season_active = True
+
+		# Quickly look through the season phase definitions
+		for phase in most_recent_season['types']:
+			if today >= get_datetime(phase['startDate']) and today <= get_datetime(phase['endDate']):
+				# Let's skip weird stuff like "play-in" season. Stick to the normal phases.
+				if phase['abbreviation'] in ['pre', 'reg', 'post', 'off']:
+					season_phase = phase['abbreviation']
+
 
 	new_standings = []
 
@@ -171,6 +190,8 @@ def get_standings(sport=None, league=None):
 	final_standing_obj = {
 		'standings_date': datetime.datetime.now().strftime('%Y-%m-%d'),
 		'standings': new_standings,
+		'season_active': season_active,
+		'season_phase': season_phase,
 	}
 
 	return final_standing_obj
@@ -260,7 +281,7 @@ def get_events(sport, league, date):
 						'last_name': competitor['team']['name'],
 						'full_name': competitor['team']['displayName']
 					},
-					f'{c_type}_period_scores': [int(x['value']) for x in competitor['linescores']] if 'linescores' in competitor else []
+					f'{c_type}_period_scores': [x['value'] for x in competitor['linescores']] if 'linescores' in competitor else []
 				})
 			new_events.append(event_data)
 
