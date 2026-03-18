@@ -12,19 +12,57 @@ Sysops are encouraged to connect to my Sports Stats JSON service to obtain the s
 Sports Stats can be considered in beta. If you encounter mistakes or bugs, please contact me.
 
 
-v0.7.4:
----------------
+Data sources
+------------
+
+As of 2026, I am fetching all sports stats from ESPN's undocumented public [API](https://github.com/pseudo-r/Public-ESPN-API/). This provides a consistent data source that will hopefully prove much more robust than previous data sources.
+
+If you want to scrape your own stats, this repo includes Python scripts to obtain the data the same way.
+
+However, I highly recommend that sysops instead configure their boards to connect to my Sports Stats JSON service. It's very simple, and it's the default for this door.
+
+(Prior to 2026, this script pulled data from Erik Berg's [xmlstats](https://erikberg.com/api) service, NHL.com, and the nflgame Python library.)
+
+
+Future updates
+--------------
+
+Features I hope to add in the future:
+
+	* User preferences such as:
+		* Pick favorite teams, which will be highlighted in a different color
+		* Choose whether to display standings broken down by divisions, or only by leagues/conferences.
+	* General interface improvements
+
+Things I'm thinking about:
+
+	* It would be nice to add league leaders, playoff brackets, etc, someday.
+
+
+Changelog
+---------
+
+### v0.8.0 (2026-03)
+
+Version 0.8 makes some back-end changes, and is a mandatory upgrade.
+
+* Overhaul system for obtaining stats (many years overdue)
+	+ Add single script to fetch data from [ESPN API](https://github.com/pseudo-r/Public-ESPN-API/)
+	+ Remove xmlstats and custom NHL/NFL scrapers
+* Update ANSI and web clients to work with revised JSON datastore format.
+* Various display fixes for ANSI and web clients
+
+### v0.7.4 (2018-04)
 
 * Update NFL and NHL scrapers
 * Add Vegas Golden Knights
 * Fix problem displaying standings by conference
 
-v0.7.3:
----------------
+### v0.7.3 (2018-01)
 
 * Change web client to make one main JSON data request per page.
-  I'm asking that sysops only allow logged-in web users to see Sports Stats.
-  (See revised web v4 installation instructions in `readme.txt`)
+	+ I'm asking that sysops only allow logged-in web users to see Sports Stats.
+	+ (See revised web v4 installation instructions in `readme.txt`)
 * Change ANSI client to make one main JSON data request per session
 * New basketball image
 * Change ANSI client's menu to use Tree.js
@@ -32,86 +70,69 @@ v0.7.3:
 * Overhauled NFL standings scraper
 * Minor tweaks
 
-v0.7.2
----------------
+### v0.7.2 (2016-08)
 
 * Changed names of several NHL, NFL stadiums
 * Several improvements to display of NFL schedules
 
-v0.7.1
----------------
+### v0.7.1 (2016-03)
 
 * Overhauled NHL scraper to grab data from NHL.com's new JSON API
 
-v0.7
----------------
+### v0.7 (2016-01)
 
 * Developed a Synchronet web v4-compatible Sports Stats .xjs app. Now your users can check standings, scores, and schedules on your BBS website!
-
 * Switched to using js-date-format.js to format dates and times. I'm no longer modifying Date.prototype!
-
 * Numerous little bug fixes for the ANSI version, which arose from development of the web version.
-
 * Because of the inclusion of js-date-format.js, as well as the new web app, I've changed the repo to mirror SBBS's folder structure in hopes that it will be clearer where all the pieces go.
 
-v0.6.3
----------------
+### v0.6.3 (2016-01)
 
 * Added a new Python script to automate the renewal of XMLStats API token.
-
 * Small change to avoid messing up Date.prototype.
 
-v0.6.2
----------------
+### v0.6.2 (2015-09)
 
 * Updated the NFL scraper to support preseason games and schedules.
 
-v0.6.1
----------------
+### v0.6.1 (2015-04)
 
 * Updated the NFL and NHL scrapers to make them compatible with the xmlstats changes described below.
-
 * Fixed sportsstats.js to avoid crashes related to NFL offseason, and fixed display of preseason MLB games related to the xmlstats changes described below.
 
-v0.6
----------------
+### v0.6 (2015-04)
 
 Version 0.6 makes some back-end changes, and is a mandatory upgrade.
 
 * cache.py now makes fewer API calls to xmlstats because of [a change xmlstats](https://erikberg.com/api/issues/158) made to their events JSON. This is a good thing, but requires changes in the sportsstats.js client. YOU MUST UPGRADE, or your Sports Stats installation will not work.
-
 * I added code to display NHL and NBA standings by conference instead of division once the season reaches March and the playoffs approach.
 
+### v0.5.1 (2015-01)
 
-Data sources
----------------
+* Patch handling NFL schedules during the postseason. For now Sports Stats will no longer display the next week/round's schedule during the postseason.
 
-I'm pulling my MLB and NBA data from Erik Berg's [xmlstats](https://erikberg.com/api) service. 
+### v0.5 (2014-10)
 
-Since xmlstats doesn't provide NFL data, I'm supplying it myself. I get game data using the [nflgame](https://github.com/BurntSushi/nflgame/) Python library by burntsushi; I scrape NFL standings data from NFL.com. 
+* Added support for NHL stats
 
-Similarly, I am scraping NHL game data and standings from NHL.com.
+### v0.4 (2014-10)
 
-I am saving the NHL and NFL data into a JSON format very similar to xmlstats to keep it all compatible.
+* Numerous improvements to interface, improvements to NFL scraper, revised code to support using Synchronet hosted JSON database.
 
-If you want to scrape your own stats, this repo includes Python scripts to obtain the data from the sources I described above.
+### v0.3 (2014-09)
 
-However, I highly recommend that sysops instead configure their boards to connect to my Sports Stats JSON service. It's very simple, and it's the default for this door.
+* Added support for NFL
+
+### v0.2 (2014-09)
+
+* Added support for MLB game results
+* Reworked the display of game results and schedules to use multiple screens with pause prompts.
 
 
-Future updates
----------------
+### v0.1 (2014-03)
 
-Features I intend to add in the future:
+* Now properly displays MLB standings, NBA standings, and NBA game scores.
 
-* User preferences such as:
-  * Pick favorite teams, which will be highlighted in a different color
-  * Choose whether to display standings broken down by divisions, or only by leagues/conferences.
-* General interface improvements
+### v0.0 (2014-02)
 
-Things I'm thinking about:
-
-* I need a way to find and store the season_status of a given league on a given date. This will allow me to remove superfluous options from the sports' menus depending on the time of year.
-* Erik Berg's service is convenient, but only offers stats for two leagues. But it does have a rate limit of six requests per minute, which sucks. I may not want to rely on it.
-* Given that I'm blending several data sources and my own scrapers, the best option will be for me to stuff all the data into a JSON database service.
-* It would be nice to add league leaders, playoff brackets, etc. But no guarantees. 
+* Initial proof of concept. Only supports NHL and MLB standings. It also has an icon-driven main menu.
