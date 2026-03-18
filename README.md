@@ -29,14 +29,14 @@ Future updates
 
 Features I hope to add in the future:
 
-	* User preferences such as:
-		* Pick favorite teams, which will be highlighted in a different color
-		* Choose whether to display standings broken down by divisions, or only by leagues/conferences.
-	* General interface improvements
+* User preferences such as:
+	* Pick favorite teams, which will be highlighted in a different color
+	* Choose whether to display standings broken down by divisions, or only by leagues/conferences.
+* General interface improvements
 
 Things I'm thinking about:
 
-	* It would be nice to add league leaders, playoff brackets, etc, someday.
+* It would be nice to add league leaders, playoff brackets, etc, someday.
 
 
 Changelog
