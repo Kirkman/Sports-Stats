@@ -201,7 +201,7 @@ function outputTeam(team,key,sport) {
 		var theWon  = team.wins.toString().rjust('2');
 		var theLost = team.losses.toString().rjust('3');
 		var theTied = team.ties.toString().rjust('3');
-		var thePct  = team.winpercent.toFixed(3).rjust('6');
+		var thePct  = team.winpercent.toFixed(3).rjust('6').replace('0.',' .');
 		var theGB = team.pointsfor.toString().rjust('4') + team.pointsagainst.toString().rjust('4');
 		var theL10  = team.streak.toString().rjust('4');
 	}
@@ -220,7 +220,7 @@ function outputTeam(team,key,sport) {
 		var theWon  = team.wins.toString().rjust('3');
 		var theLost = team.losses.toString().rjust('5');
 		var theTied = '';
-		var thePct  = team.winpercent.toFixed(3).rjust('6');
+		var thePct  = team.winpercent.toFixed(3).rjust('6').replace('0.',' .');;
 		var gb = team.gamesbehind;
 		if ( !hasDecimal(gb) ) {
 			gb = team.gamesbehind.toString() + ' ';
@@ -931,14 +931,14 @@ function displayStandings(sport, by_division, season_active, season_phase) {
 		var statDateObj = new Date( parseDate(statDate) );
 		json = json['standings'];
 		
-
 		// Generate a 00:00:00 yesterday object.
 		var yester = new Date();
 		yester.setDate(yester.getDate() - 1);
 		yester.setTime(yester.getTime()-yester.getHours()*3600*1000-yester.getMinutes()*60*1000);
 
 		var dateHeader = statDate;
-		// If these standings are more than a day behind, then we must be in the offseason
+
+		// Determine whether the season is active, and if so, what phase we're in.
 		if (season_active == false && season_phase == 'off') {
 			dateHeader = 'OFFSEASON';
 		}
@@ -990,10 +990,10 @@ function displayStandings(sport, by_division, season_active, season_phase) {
 				for (var j=0; j<thisConfStandings.length; j++) {
 					thisFrame.putmsg( outputTeam(thisConfStandings[j],j,sport) );
 					thisFrame.crlf();
-					if (j==7) {
-						thisFrame.putmsg( highBlack + ''.ljust('39',charHorizSingle) );
-						thisFrame.crlf();
-					}
+					// if (j==7) {
+					// 	thisFrame.putmsg( highBlack + ''.ljust('39',charHorizSingle) );
+					// 	thisFrame.crlf();
+					// }
 				} // key in divStandings for loop
 			} // else by_division
 		} // conferences for loop
