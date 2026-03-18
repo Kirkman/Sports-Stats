@@ -103,32 +103,42 @@ function cleanName(str, method) {
 			[/^C$/i, 'Central'],
 			[/^E$/i, 'East'],
 			[/^W$/i, 'West'],
-			[/^SW$/i, 'Southwest'],
+			[/^PAC$/i, 'Pacific'],
+			[/^PA$/i, 'Pacific'],
 			[/^CEN$/i, 'Central'],
+			[/^CE$/i, 'Central'],
 			[/^ATL$/i, 'Atlantic'],
+			[/^AT$/i, 'Atlantic'],
 			[/^NW$/i, 'Northwest'],
 			[/^SE$/i, 'Southeast'],
-			[/^PAC$/i, 'Pacific'],
+			[/^SW$/i, 'Southwest'],
+			[/^CAC$/i, 'Cactus'],
+			[/^GPF$/i, 'Grapefruit'],
 			[/^New York Jets/i, 'NY Jets'],
 			[/^New York Giants/i, 'NY Giants'],
-			[/^Trail Blazers/i, 'TrailBlazers'],
+			[/^Trail Blazers/i, 'T. Blazers'],
 			[/^Golden Knights/i, 'G. Knights'],
-			[/^Blue Jackets/i, 'BlueJackets']
+			[/^Blue Jackets/i, 'Bl. Jackets']
 		];
 	}
 	else if (method == 'events') {
+		// Abbreviate the really long pretentious venue names
+		str = str.replace(/^(.+?)(Park|Stadium|Fields|Field|Ranch|Center) (of|at|-) (.+?)$/, '$1$2');
+
 		replacements = [
 	//		['^' : '',
 			[/^Diamondbacks/i, 'D\'Backs'],
-			[/^Trail Blazers/i, 'T Blazers'],
+			[/^Trail Blazers/i, 'T. Blazers'],
 			[/^Timberwolves/i, 'T\'wolves'],
-			[/^Blue Jackets/i, 'BlueJackets'],
-			[/University/i, 'U.'],
-			[/America/i, 'Amer.'],
+			[/^Blue Jackets/i, 'Bl. Jackets'],
+			[/^Golden Knights/i, 'G. Knights'],
 			[/Mercedes-Benz Superdome/i, 'Superdome'],
-			[/Financial/i, 'Fin.'],
-			[/Stadium/i, 'Std.'],
-			[/Los Angeles Memorial/i, 'Std.']
+			[/George M\. Steinbrenner/i, 'Steinbrenner'],
+			[/\bUniversity\b/i, 'U.'],
+			[/\bAmerica\b/i, 'Amer.'],
+			[/\bFinancial\b/i, 'Fin.'],
+			[/\bStadium\b/i, 'Std.'],
+			[/\bLos Angeles Memorial\b/i, 'Std.']
 		];
 	}
 
@@ -245,7 +255,9 @@ function chooseSport() {
 	console.clear();
 	frame.cycle();
 	var mysport = '';
-	var byDivision = true;
+	var by_division = true;
+	var season_active = true;
+	var season_phase = 'reg';
 
 	headerFrame = new Frame(1, 1, 80, 3, BG_BLACK, frame);
 	headerFrame.load(js.exec_dir + 'graphics/header.bin', 80, 3);
@@ -361,20 +373,22 @@ function chooseSport() {
 	} // end while
 
 	mysport = sports[currentSport]['sport'];
-	
+
+	mystandings = getData(mysport, 'standings');
+	season_active = mystandings['season_active'];
+	season_phase = mystandings['season_phase'];
 
 	// Decide if we should display conference standings instead of division
-	if (mysport == 'nhl' || mysport == 'nba') {
+	if (season_phase == 'pre') { by_division = false; }
+
+	// NFL offseason should be by conference
+	else if (season_phase == 'off' && mysport == 'nfl') { by_division = false; }
+
+	// Display NBA/NHL conference standings from April-September. 
+	else if (mysport == 'nhl' || mysport == 'nba') {
 		var d = new Date();
 		var month = d.getMonth();
-		// display NBA/NHL conference standings from April-September. 
-		if (month >= 3 && month < 9 ) { byDivision = false; }
-	}
-	else if (mysport == 'mlb') {
-		var d = new Date();
-		var month = d.getMonth();
-		// display MLB standings by conf before April. 
-		if (month >= 1 && month < 4 ) { byDivision = false; }
+		if (month >= 3 && month < 9 ) { by_division = false; }
 	}
 	
 	
@@ -387,10 +401,11 @@ function chooseSport() {
 	// the NFL, etc.
 
 	var datesFromJson = getData('dates');
+	var dates = [];
 
 	// NFL schedules are weekly, not daily
-	if (mysport == 'nfl') {
-		var dates = [
+	if (mysport == 'nfl' && season_active == true) {
+		dates = [
 			{ 'date': datesFromJson['lastweek'], 'name': 'Last week' },
 			{ 'date': datesFromJson['thisweek'], 'name': 'This week' },
 			{ 'date': datesFromJson['nextweek'], 'name': 'Next week' }
@@ -398,29 +413,29 @@ function chooseSport() {
 
 	}
 	// All other sports use daily schedules
-	else {
-		var dates = [
+	else if (season_active == true) {
+		dates = [
 			{ 'date': datesFromJson['yesterday'], 'name': 'Yesterday' },
 			{ 'date': datesFromJson['today'], 'name': 'Today' },
 			{ 'date': datesFromJson['tomorrow'], 'name': 'Tomorrow' }
 		];
 	}
 
-	// TEMPORARY FIX
-	// I need to do more work about how to handle postseason and offseason.
-	// For now in the NFL, I am storing "nextweek" as a null value
-	// because nflgame won't return a schedule for next week.
-	// In the future I want to store a value for each league indicating
-	// whether a particular date/week is pre/reg/post/off-season. Then I
-	// could customize these menu options depending on the season's phase.
+	// // TEMPORARY FIX
+	// // I need to do more work about how to handle postseason and offseason.
+	// // For now in the NFL, I am storing "nextweek" as a null value
+	// // because nflgame won't return a schedule for next week.
+	// // In the future I want to store a value for each league indicating
+	// // whether a particular date/week is pre/reg/post/off-season. Then I
+	// // could customize these menu options depending on the season's phase.
 
-	// If any of the dates are null, then let's remove them
-	for(var i = dates.length -1; i >= 0; i--) {
-		if ( dates[i]['date'] == null ) {
-			dates.splice(i, 1);
-		}
-	}
-	// END TEMPORARY FIX
+	// // If any of the dates are null, then let's remove them
+	// for(var i = dates.length -1; i >= 0; i--) {
+	// 	if ( dates[i]['date'] == null ) {
+	// 		dates.splice(i, 1);
+	// 	}
+	// }
+	// // END TEMPORARY FIX
 
 
 	var optionsX = sports[currentSport]['frame'].x;	
@@ -457,7 +472,7 @@ function chooseSport() {
 
 	for (var i=0; i<options.length; i++) {
 		if (i==0) {
-			tree.addItem(options[i]['name'], switcher, mysport, options[i]['option'], byDivision);
+			tree.addItem(options[i]['name'], switcher, mysport, options[i]['option'], by_division, season_active, season_phase);
 		}
 		if (i==1) {
 			subtree = tree.addTree(options[i]['name']);
@@ -497,7 +512,7 @@ function chooseSport() {
 }
 
 
-function switcher(sport, option, param) {
+function switcher(sport, option, param, param2, param3) {
 	if (typeof sport != undefined && typeof option != undefined && typeof param != undefined ) {
 		frame.invalidate();
 		frame.cycle();
@@ -513,8 +528,8 @@ function switcher(sport, option, param) {
 		tree = null;
 		subtree = null;
 
-		if (option == 'standings') { displayStandings(sport,param); }
-		else if (option == 'events') { displayScores(sport,param); }
+		if (option == 'standings') { displayStandings(sport, param, param2, param3); }
+		else if (option == 'events') { displayScores(sport, param); }
 	}
 }
 
@@ -623,6 +638,10 @@ function displayScores(sport, date) {
 					if ( event.event_completed === true && typeof event['away_period_scores'] !== 'undefined' && event['away_period_scores'].length > 0) {
 						// number of periods
 						var len = event['away_period_scores'].length;
+						// Check if this is a game where the home team didn't have to play 9th inning
+						if (sport == 'mlb' && (event['home_period_scores'].length == (event['away_period_scores'].length - 1))) {
+							event['home_period_scores'].push('-');
+						}
 						// default padding between columns
 						var paddingAmt = 2;
 						// default padding before vertical pipes
@@ -702,6 +721,7 @@ function displayScores(sport, date) {
 
 							var awayPeriodScore = event['away_period_scores'][j];
 							var homePeriodScore = event['home_period_scores'][j];
+
 							// NEED TO ADD
 							// Put a subroutine here (for MLB) to check 
 							// if an inning had a double-digit score. If so,
@@ -821,7 +841,7 @@ function displayScores(sport, date) {
 						}
 						else {
 							eventStartTime = (' ' + eventStartTime ).ljust(10);
-							site = event.site.name.rjust(26);
+							site = cleanName( event.site.name, 'events' ).rjust(26);
 						}
 
 						if ( isOdd(i) ) { 
@@ -895,7 +915,7 @@ function displayScores(sport, date) {
 // ### 
 // ##################################
 
-function displayStandings(sport,byDivision) {
+function displayStandings(sport, by_division, season_active, season_phase) {
 	sport = sport || 'mlb';
 
 	var method = "standings";
@@ -919,9 +939,16 @@ function displayStandings(sport,byDivision) {
 
 		var dateHeader = statDate;
 		// If these standings are more than a day behind, then we must be in the offseason
-		if (statDateObj < yester) {
+		if (season_active == false && season_phase == 'off') {
 			dateHeader = 'OFFSEASON';
 		}
+		else if (season_phase == 'pre' && sport == 'mlb') {
+			dateHeader = 'SPRING TRAINING';
+		}
+		else if (season_phase == 'pre') {
+			dateHeader = 'PRE-SEASON';
+		}
+
 
 		// usage
 		var conferences = uniqueBy(json, function(x){return x.conference;});
@@ -936,9 +963,9 @@ function displayStandings(sport,byDivision) {
 
 			// There are circumstances where I won't want to break down the standings
 			// all the way to the division level. So I have added an optional 
-			// byDivision variable, which defaults to True. If you set it to false
+			// by_division variable, which defaults to True. If you set it to false
 			// teams will be displayed by conference.
-			if (byDivision) {
+			if (by_division) {
 				var divisions = uniqueBy(thisConfStandings, function(x){return x.division;});
 				for (var j=0; j<divisions.length; j++) {
 					var thisDivStandings = thisConfStandings.filter( function(x){return x.division === divisions[j];} );
@@ -949,7 +976,7 @@ function displayStandings(sport,byDivision) {
 						thisFrame.crlf();
 					} // key in divStandings for loop
 				} // divisions for loop
-			} // if byDivision
+			} // if by_division
 			else {
 				// NHL conf standings should be sorted by points
 				if (sport == 'nhl') {
@@ -968,7 +995,7 @@ function displayStandings(sport,byDivision) {
 						thisFrame.crlf();
 					}
 				} // key in divStandings for loop
-			} // else byDivision
+			} // else by_division
 		} // conferences for loop
 
 		seperatorFrame.load(js.exec_dir + 'graphics/separator.bin', 2, 21);
